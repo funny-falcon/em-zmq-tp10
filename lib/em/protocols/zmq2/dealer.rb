@@ -17,7 +17,7 @@ module EventMachine
       # if !dealer.send_message(['asdf','fdas'])
       #   puts "Could not send message (no free peers)"
       # end
-      class PreDealer < Zmq2::Socket
+      class PreDealer < Socket
         # @private
         def choose_peer(even_if_busy = false)
           i = @free_peers.size 
@@ -32,12 +32,12 @@ module EventMachine
         end
 
         # overrides default callback to call +#recieve_message+
-        def recieve_message_and_peer(message, peer_identity) # :nodoc:
-          recieve_message(message)
+        def receive_message_and_peer(message, peer_identity) # :nodoc:
+          receive_message(message)
         end
 
         # override to have desired reaction on message
-        def recieve_message(message)
+        def receive_message(message)
           raise NoMethodError
         end
 

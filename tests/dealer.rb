@@ -38,7 +38,7 @@ describe 'Dealer' do
         super
         @defered.succeed  if @free_peers.size == 2
       end
-      def recieve_message(message)
+      def receive_message(message)
         @incoming_queue << message
       end
     end
@@ -82,6 +82,29 @@ describe 'Dealer' do
       end
       (messages - results).must_be_empty
       (results - messages).must_be_empty
+    end
+
+    it "should be able to receive messages" do
+      EM.run {
+        dealer.connect(ZBIND_ADDR)
+        dealer.bind(ZCONNECT_ADDR)
+        defered.callback {
+          EM.defer do
+            messages[0...(messages.size/2)].each{|message|
+              @zbind.send_strings ['MyDealer', *message]
+            }
+            messages[(messages.size/2)..-1].each{|message|
+              @zconnect.send_strings ['MyDealer', *message]
+            }
+          end
+        }
+        EM.add_timer(1) { dealer.close;  EM.stop }
+        # there is error somewhere
+        EM.add_timer(1.1) { dealer.close;  EM.stop }
+      }
+      dealer.incoming_queue.size.must_equal messages.size
+      (dealer.incoming_queue - messages).must_be_empty
+      (messages - dealer.incoming_queue).must_be_empty
     end
   end
 end
