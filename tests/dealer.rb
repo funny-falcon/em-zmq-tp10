@@ -5,24 +5,24 @@ require 'minitest/autorun'
 require 'em/protocols/zmq2/dealer'
 
 describe 'Dealer' do
-  ZREP_ADDR = 'tcp://127.0.0.1:7890'
-  ZROUTER_ADDR = 'tcp://127.0.0.1:7891'
+  ZBIND_ADDR = 'tcp://127.0.0.1:7890'
+  ZCONNECT_ADDR = 'tcp://127.0.0.1:7891'
 
   before do
     @zctx = ZMQ::Context.new
-    @zrep = @zctx.socket(ZMQ::ROUTER)
-    @zrep.identity = 'BIND_ROUTE'
-    @zrep.bind(ZREP_ADDR)
-    @zrouter = @zctx.socket(ZMQ::ROUTER)
-    @zrouter.identity = 'CONNECT_ROUTE'
-    @zrouter.connect(ZROUTER_ADDR)
+    @zbind = @zctx.socket(ZMQ::ROUTER)
+    @zbind.identity = 'BIND_ROUTE'
+    @zbind.bind(ZBIND_ADDR)
+    @zconnect = @zctx.socket(ZMQ::ROUTER)
+    @zconnect.identity = 'CONNECT_ROUTE'
+    @zconnect.connect(ZCONNECT_ADDR)
   end
 
   after do
-    @zrep.setsockopt(ZMQ::LINGER, 0)
-    @zrouter.setsockopt(ZMQ::LINGER, 0)
-    @zrep.close
-    @zrouter.close
+    @zbind.setsockopt(ZMQ::LINGER, 0)
+    @zconnect.setsockopt(ZMQ::LINGER, 0)
+    @zbind.close
+    @zconnect.close
     @zctx.terminate
   end
 
@@ -57,8 +57,8 @@ describe 'Dealer' do
 
     it "should be able to send message" do
       EM.run {
-        dealer.connect(ZREP_ADDR)
-        dealer.bind(ZROUTER_ADDR)
+        dealer.connect(ZBIND_ADDR)
+        dealer.bind(ZCONNECT_ADDR)
         defered.callback {
           messages.each{|message|
             dealer.send_message(message).must_equal true
@@ -68,14 +68,14 @@ describe 'Dealer' do
       }
       results = []
       result = []
-      while @zrep.recv_strings(result, ZMQ::NOBLOCK) != -1
+      while @zbind.recv_strings(result, ZMQ::NOBLOCK) != -1
         result.shift.must_equal 'MyDealer'
         results << result
         result = []
       end
       results.size.must_be :>, 0
       results.size.must_be :<, messages.size
-      while @zrouter.recv_strings(result, ZMQ::NOBLOCK) != -1
+      while @zconnect.recv_strings(result, ZMQ::NOBLOCK) != -1
         result.shift.must_equal 'MyDealer'
         results << result
         result = []
