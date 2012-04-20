@@ -1,6 +1,8 @@
-# Em::Zmq::Tp10
+# EventMachine ZMTP1.0 protocol (ZMQ2.x protocol)
 
-TODO: Write a gem description
+It is implementation of ZMTP 1.0 - ZMQ 2.x transport protocol.
+There are implementations of ZMQ socket types which try to be
+similar to original, but not too hard.
 
 ## Installation
 
