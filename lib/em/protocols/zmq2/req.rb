@@ -18,7 +18,7 @@ module EventMachine
       #   end
       #
       #   req = MyReq.new
-      #   if request_id = req.send_request('hi', 'ho')
+      #   if request_id = req.send_request(['hi', 'ho'])
       #     puts "Message sent"
       #   end
       #
@@ -69,8 +69,9 @@ module EventMachine
         end
 
         # do not override +#recieve_message+ or for PreReq subclasses
-        def receive_message(message, peer_ident)
+        def receive_message(message)
           request_id, message = split_message(message)
+          request_id = request_id.first
           if data = @data.delete(request_id)
             receive_reply(message, data, request_id)
           end
@@ -93,7 +94,7 @@ module EventMachine
           request = form_request(message)
           request_id = request.first
           @data[request_id] = data
-          if send_message(message, even_if_busy)
+          if send_message(request, even_if_busy)
             request_id
           else
             @data.delete request_id
@@ -180,8 +181,9 @@ module EventMachine
 
         def send_request(message, data)
           request = form_request(message)
-          @data[request.first] = data
-          if flush_queue && send_message(message) || push_to_queue(request)
+          request_id = request.first
+          @data[request_id] = data
+          if flush_queue && send_message(request) || push_to_queue(request)
             request_id
           end
         end
