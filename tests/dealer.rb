@@ -167,27 +167,51 @@ describe 'Dealer' do
       10000.times.map{|n| ['', 'hello', 'world'] << n.to_s}
     end
 
-    it "should be able to send a lot of messages" do
-      results_a = []
-      results_b = []
-      sizes = lambda{ results_a.size + results_b.size }
-      with_native do
-        thrd = Thread.new do
+    class Collector
+      attr :res_a, :res_b
+      def initialize(till)
+        @till = till
+        @res_a, @res_b = [], []
+      end
+      def full?
+        @res_a.size + @res_b.size >= @till
+      end
+      def full_res
+        @res_a + @res_b
+      end
+      def set_sockets(zbind, zconnect)
+        @zbind = zbind
+        @zconnect = zconnect
+      end
+      def thread
+        Thread.new do
+          begin
           result = []
-          while sizes.call < messages.size
+          until full?
             while @zbind.recv_strings(result, ZMQ::NOBLOCK) != -1
               result.shift.must_equal 'MyDealer'
-              results_a << result
+              @res_a << result
               result = []
             end
             while @zconnect.recv_strings(result, ZMQ::NOBLOCK) != -1
               result.shift.must_equal 'MyDealer'
-              results_b << result
+              @res_b << result
               result = []
             end
             sleep(0.01)
           end
+          rescue
+            puts $!
+          end
         end
+      end
+    end
+
+    it "should be able to send a lot of messages" do
+      collector = Collector.new(messages.size)
+      with_native do
+        collector.set_sockets @zbind, @zconnect
+        thrd = collector.thread
         EM.run {
           p defered.instance_variable_get("@defered_status")
           dealer.connect(ZBIND_ADDR)
@@ -197,7 +221,7 @@ describe 'Dealer' do
               dealer.send_message(message).must_equal true
             }
             cb = lambda do
-              if sizes.call < messages.size
+              unless collector.full?
                 EM.add_timer(0.5, cb)
               else
                 EM.next_tick{ EM.stop }
@@ -208,11 +232,37 @@ describe 'Dealer' do
         }
         thrd.join
       end
-      sizes.call.must_equal messages.size
-      results_a.size.must_be :>, 0
-      results_b.size.must_be :<, messages.size
-      (messages - results_a - results_b).must_be_empty
-      (results_a + results_b - messages).must_be_empty
+      collector.full?.must_equal true
+      collector.res_a.size.must_be :>, 0
+      collector.res_a.size.must_be :<, messages.size
+      (messages - collector.full_res).must_be_empty
+      (collector.full_res - messages).must_be_empty
+    end
+
+    it "should be closed after writting" do
+      collector = Collector.new(messages.size)
+      with_native do
+        collector.set_sockets @zbind, @zconnect
+        thrd = collector.thread
+        EM.run {
+          p defered.instance_variable_get("@defered_status")
+          dealer.connect(ZBIND_ADDR)
+          dealer.bind(ZCONNECT_ADDR)
+          defered.callback {
+            messages.each{|message|
+              dealer.send_message(message).must_equal true
+            }
+            dealer.close_after_writting
+            EM.add_timer(0.1){ EM.next_tick{ EM.stop } }
+          }
+        }
+        thrd.join
+      end
+      collector.full?.must_equal true
+      collector.res_a.size.must_be :>, 0
+      collector.res_a.size.must_be :<, messages.size
+      (messages - collector.full_res).must_be_empty
+      (collector.full_res - messages).must_be_empty
     end
   end
 end
