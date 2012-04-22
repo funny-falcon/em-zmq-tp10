@@ -4,7 +4,7 @@ module EventMachine
       VERSION = '0.0.1'
 
       EMPTY = ''.freeze
-      SMALL_TIMEOUT = 0.01
+      SMALL_TIMEOUT = 0.03
       HWM_INFINITY = 2**20
       autoload :PreDealer, 'em/protocols/zmq2/dealer.rb'
       autoload :Dealer, 'em/protocols/zmq2/dealer.rb'

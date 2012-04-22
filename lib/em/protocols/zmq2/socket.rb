@@ -64,7 +64,7 @@ module EM
         # :stopdoc:
         def not_connected(connection)
           if addr = @connections.delete(connection)
-            EM.add_timer(0.01) do
+            EM.add_timer(SMALL_TIMEOUT) do
               connect(addr)
             end
           end

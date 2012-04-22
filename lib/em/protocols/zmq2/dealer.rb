@@ -75,11 +75,6 @@ module EventMachine
           @write_queue = []
         end
 
-        def register_peer(peer_identity, connection)
-          super
-          flush_queue
-        end
-
         alias raw_send_message send_message
         def flush_queue(even_if_busy = false)
           until @write_queue.empty?

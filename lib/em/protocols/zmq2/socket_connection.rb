@@ -20,11 +20,11 @@ module EventMachine
           send_frame @socket.identity
         end
 
-        def unbind
+        def unbind(err)
           if @peer_identity
             @socket.unregister_peer(@peer_identity)
           end
-          @socket.not_connected(self)
+          @socket.not_connected(self)  if err
         end
 
         # use watching on outbound queue when possible
@@ -41,6 +41,7 @@ module EventMachine
           end
         else
           def _not_too_busy?
+            #puts "_not_too_busy? #{@peer_identity} #{get_outbound_data_size}"
             get_outbound_data_size < 2048
           end
         end
@@ -50,10 +51,10 @@ module EventMachine
         else
           def notify_when_free=(v)
             if v
-              @when_free_timer ||= EM.add_timer(SMALL_TIMEOUT){
+              @when_free_timer ||= EM.add_timer(SMALL_TIMEOUT) do
                 @when_free_timer = nil
                 sent_data
-              }
+              end
             elsif @when_free_timer
               EM.cancel_timer @when_free_timer
               @when_free_timer = nil
@@ -62,9 +63,9 @@ module EventMachine
         end
 
         def not_too_busy?
-          busy = _not_too_busy?
-          self.notify_when_free = busy
-          busy
+          free = _not_too_busy?
+          self.notify_when_free = !free
+          free
         end
 
         def receive_data(data)
