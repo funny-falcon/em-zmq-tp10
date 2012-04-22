@@ -17,7 +17,7 @@ module EventMachine
 
         # by default chooses peer by peer_identity, but you could wary it
         def choose_peer(peer_identity, even_if_busy = false)
-          if (connect = @free_peers[peer_identity]) && !connect.error? &&
+          if (connect = @peers[peer_identity]) && !connect.error? &&
              (even_if_busy || connect.not_too_busy?)
             connect
           end
@@ -59,7 +59,7 @@ module EventMachine
           peer_identity = message.first
           flush_queue(peer_identity) && super(message) || begin 
             unless generated_idenity?(peer_identity)
-              push_to_queue(@replies[peer_identity], message)
+              push_to_queue((@replies[peer_identity]||=[]), message)
             end
           end
         end
