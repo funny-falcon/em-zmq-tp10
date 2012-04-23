@@ -33,6 +33,7 @@ module EM
           @peers = {}
           @free_peers = {}
           @connections = {}
+          @conn_addresses = {}
           @bindings = []
           @uniq_identity = '%GN%aaaaaaaaaaaa' # ~ 100 years to overflow
         end
@@ -43,7 +44,9 @@ module EM
         #   bind('ipc://filename') - bind to unix port
         def bind(addr)
           kind, *socket = parse_address(addr)
-          @bindings << EM.start_server(*socket, SocketConnection, self)
+          EM.schedule {
+            @bindings << EM.start_server(*socket, SocketConnection, self)
+          }
         end
 
         # connect to port
@@ -52,18 +55,24 @@ module EM
         #   connect('ipc://filename') - connect to unix port
         def connect(addr)
           kind, *socket = parse_address(addr)
-          connection = case kind
-              when :tcp
-                EM.connect(*socket, SocketConnection, self)
-              when :ipc
-                EM.connect_unix_domain(*socket, SocketConnection, self)
-              end
-          @connections[ connection ] = addr
+          EM.schedule {
+            unless @conn_addresses[ addr ]
+              connection = case kind
+                  when :tcp
+                    EM.connect(*socket, SocketConnection, self)
+                  when :ipc
+                    EM.connect_unix_domain(*socket, SocketConnection, self)
+                  end
+              @connections[ connection ] = addr
+              @conn_addresses[ addr ] = connection
+            end
+          }
         end
 
         # :stopdoc:
         def not_connected(connection)
           if addr = @connections.delete(connection)
+            @conn_addresses.delete addr
             EM.add_timer(SMALL_TIMEOUT) do
               connect(addr)
             end

@@ -54,8 +54,11 @@ describe 'Dealer' do
       end
     end
 
-    let(:dealer) do
-      MyPreDealer.new(identity: 'MyDealer', connected: connected)
+    attr :dealer
+    before do
+      @dealer = MyPreDealer.new(identity: 'MyDealer', connected: connected)
+      @dealer.connect(ZBIND_ADDR)
+      @dealer.bind(ZCONNECT_ADDR)
     end
 
     let(:messages) do
@@ -66,8 +69,6 @@ describe 'Dealer' do
       results = []
       with_native do
         EM.run {
-          dealer.connect(ZBIND_ADDR)
-          dealer.bind(ZCONNECT_ADDR)
           connected.callback {
             messages.each{|message|
               dealer.send_message(message).must_equal true
@@ -98,8 +99,6 @@ describe 'Dealer' do
     it "should be able to receive messages" do
       with_native do
         EM.run {
-          dealer.connect(ZBIND_ADDR)
-          dealer.bind(ZCONNECT_ADDR)
           connected.callback {
             messages[0...(messages.size/2)].each{|message|
               @zbind.send_strings ['MyDealer', *message]
@@ -126,8 +125,6 @@ describe 'Dealer' do
     it "should be able to connect after timeout" do
       connected_ = false
       EM.run do
-        dealer.connect(ZBIND_ADDR)
-        dealer.bind(ZCONNECT_ADDR)
         connected.callback{ connected_ = true;
           EM.next_tick{ EM.stop }
         }
@@ -158,8 +155,11 @@ describe 'Dealer' do
       end
     end
 
-    let(:dealer) do
-      MyDealer.new(identity: 'MyDealer', connected: connected)
+    attr :dealer
+    before do
+      @dealer = MyDealer.new(identity: 'MyDealer', connected: connected)
+      @dealer.connect(ZBIND_ADDR)
+      @dealer.bind(ZCONNECT_ADDR)
     end
 
     let(:messages) do
@@ -212,8 +212,6 @@ describe 'Dealer' do
         collector.set_sockets @zbind, @zconnect
         thrd = collector.thread
         EM.run {
-          dealer.connect(ZBIND_ADDR)
-          dealer.bind(ZCONNECT_ADDR)
           connected.callback {
             messages.each{|message|
               dealer.send_message(message).must_equal true
@@ -243,8 +241,6 @@ describe 'Dealer' do
         collector.set_sockets @zbind, @zconnect
         thrd = collector.thread
         EM.run {
-          dealer.connect(ZBIND_ADDR)
-          dealer.bind(ZCONNECT_ADDR)
           connected.callback {
             messages.each{|message|
               dealer.send_message(message).must_equal true

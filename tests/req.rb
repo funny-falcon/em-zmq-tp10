@@ -49,7 +49,11 @@ describe 'Req' do
       end
     end
 
-    let(:req){ MyPreReq.new(identity: 'REQ', connected: connected)}
+    attr :req
+    before do
+      @req = MyPreReq.new(identity: 'REQ', connected: connected)
+      @req.connect(ZBIND_ADDR)
+    end
     let(:messages){
       ar = 300.times.map{|i| ['hello', i.to_s]}
       ar << ['hello', 'xxx']
@@ -68,7 +72,6 @@ describe 'Req' do
           end
         end
         EM.run {
-          req.connect(ZBIND_ADDR)
           connected.callback {
             dup = messages.dup
             cb = lambda {
@@ -118,7 +121,11 @@ describe 'Req' do
     end
 
     let(:finished){ EM::DefaultDeferrable.new }
-    let(:req){ MyReq.new({identity: 'REQ'}, connected, finished)}
+    attr :req
+    before do
+      @req = MyReq.new({identity: 'REQ'}, connected, finished)
+      @req.connect(ZBIND_ADDR)
+    end
     let(:messages){
       ar = 1000.times.map{|i| ['hello', i.to_s]}
       ar << ['hello', 'xxx']
@@ -137,7 +144,6 @@ describe 'Req' do
           end
         end
         EM.run {
-          req.connect(ZBIND_ADDR)
           connected.callback {
             messages.each{|message|
               req.send_request(message, message.last)
