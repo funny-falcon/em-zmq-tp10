@@ -5,8 +5,8 @@ module EventMachine
     module Zmq2
       # mixin which transforms +PreRouter+ to +PreRep+ and +Router+ to +Rep+
       module RepMixin
-        # you should not override +#recieve_message+ in +PreRep+ and +Rep+
-        # see +#recieve_request+ instead
+        # you should not override +#receive_message+ in +PreRep+ and +Rep+
+        # see +#receive_request+ instead
         def receive_message(message)
           envelope, message = split_message(message)
           receive_request(message, envelope)
@@ -28,7 +28,7 @@ module EventMachine
       #
       # @example
       # class EchoBangRep < EM::Protocols::Zmq2::PreRep
-      #   def recieve_request(message, envelope)
+      #   def receive_request(message, envelope)
       #     message << "!"
       #     if send_reply(message, envelope)
       #       puts "reply sent successfuly"
@@ -46,7 +46,7 @@ module EventMachine
       #
       # @example
       # class EchoBangRep < EM::Protocols::Zmq2::Rep
-      #   def recieve_request(message, envelope)
+      #   def receive_request(message, envelope)
       #     message << "!"
       #     if send_reply(message, envelope)
       #       puts "reply sent successfuly (or placed into queue)"

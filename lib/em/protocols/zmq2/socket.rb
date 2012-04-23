@@ -100,6 +100,8 @@ module EM
         # close all connections
         # if callback is passed, then it will be called after all messages written to sockets
         def close(cb = nil, &block)
+          @connections.clear
+          @conn_addresses.clear
           @after_writting = cb || block
           flush_all_queue  if @after_writting
           @peers.values.each{|c| c.close_connection(!!@after_writting)}

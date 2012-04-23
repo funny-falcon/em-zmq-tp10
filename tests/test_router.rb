@@ -84,7 +84,7 @@ describe 'Router' do
       100.times.map{|n| ['hello', n.to_s] } << ['hello', 'xxx']
     end
 
-    it "should be able to recieve messages" do
+    it "should be able to receive messages" do
       halves = messages[0...(messages.size/2)], messages[(messages.size/2)..-1]
       Native.with_socket_pair('DEALER') do |zbind, zconnect|
         EM.run {

@@ -6,19 +6,19 @@ module EventMachine
       # It generates unique request ids and uses ZMQ routing scheme for mapping
       # replies.
       #
-      # Note, that on subclassing, you should override +#recieve_reply+ and not 
-      # +#recieve_message+ , and you should use +#send_request+ instead of 
+      # Note, that on subclassing, you should override +#receive_reply+ and not
+      # +#receive_message+ , and you should use +#send_request+ instead of
       # +#send_message+
       #
       # @example
       #   class MyReq < EM::Protocols::Zmq2::PreReq
-      #     def recieve_reply(message, data, request_id)
-      #       puts "Recieved message #{message} and stored data #{data}
+      #     def receive_reply(message, data, request_id)
+      #       puts "received message #{message} and stored data #{data}
       #     end
       #   end
       #
       #   req = MyReq.new
-      #   if request_id = req.send_request(['hi', 'ho'])
+      #   if request_id = req.send_request(['hi'], 'ho')
       #     puts "Message sent"
       #   end
       #
@@ -33,11 +33,11 @@ module EventMachine
       #       EM.cancel_timer(data[:timer])  if data[:timer]
       #       data[:data]
       #     end
-      #     def recieve_reply(message, data, request_id)
+      #     def receive_reply(message, data, request_id)
       #       if timer = data[:timer]
       #         EM.cancel_timer(data[:timer])
       #       end
-      #       puts "Recieve message #{message.inspect}, associated data #{data[:data].inspect}"
+      #       puts "receive message #{message.inspect}, associated data #{data[:data].inspect}"
       #     end
       #     def send_request(message, data)
       #       data = {data: data}
@@ -68,7 +68,7 @@ module EventMachine
           @data.delete request_id
         end
 
-        # do not override +#recieve_message+ or for PreReq subclasses
+        # do not override +#receive_message+ or for PreReq subclasses
         def receive_message(message)
           request_id, message = split_message(message)
           request_id = request_id.first
@@ -108,7 +108,7 @@ module EventMachine
           cancel_request(message.first)
         end
       end
-      
+
       # ZMQ socket which acts like REQ. It also reacts on connection busyness, so
       # that it is a bit smarter, than ZMQ REQ.
       # It generates unique request ids and uses ZMQ routing scheme for mapping
@@ -116,14 +116,14 @@ module EventMachine
       #
       # The only visible change from PreReq is less frequent +send_request+ false return
       #
-      # Note, that on subclassing, you should override +#recieve_reply+ and not 
-      # +#recieve_message+ , and you should use +#send_request+ instead of 
+      # Note, that on subclassing, you should override +#receive_reply+ and not
+      # +#receive_message+ , and you should use +#send_request+ instead of
       # +#send_message+
       #
       # @example
       #   class MyReq < EM::Protocols::Zmq2::Req
-      #     def recieve_reply(message, data, request_id)
-      #       puts "Recieved message #{message} and stored data #{data}
+      #     def receive_reply(message, data, request_id)
+      #       puts "received message #{message} and stored data #{data}
       #     end
       #   end
       #
@@ -143,11 +143,11 @@ module EventMachine
       #       EM.cancel_timer(data[:timer])  if data[:timer]
       #       data[:data]
       #     end
-      #     def recieve_reply(message, data)
+      #     def receive_reply(message, data)
       #       if timer = data[:timer]
       #         EM.cancel_timer(data[:timer])
       #       end
-      #       puts "Recieve message #{message.inspect}, associated data #{data[:data].inspect}"
+      #       puts "receive message #{message.inspect}, associated data #{data[:data].inspect}"
       #     end
       #     def send_request(message, data)
       #       data = {data: data}
@@ -277,7 +277,7 @@ module EventMachine
           super message, callback || block
         end
       end
-      
+
       # Convinient Req class, which returns EM::DefaultDeferable on +#send_request+
       #
       # @example
@@ -285,7 +285,7 @@ module EventMachine
       #   req.bind('ipc://req')
       #   data = {hi: 'ho'}
       #   deferable = req.send_request(['hello', 'world'], data) do |reply, data|
-      #     puts "Reply recieved #{reply} #{data}"
+      #     puts "Reply received #{reply} #{data}"
       #   end
       #   deferable.timeout 1
       #   deferable.errback do

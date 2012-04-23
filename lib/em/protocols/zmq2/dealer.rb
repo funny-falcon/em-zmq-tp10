@@ -9,7 +9,7 @@ module EventMachine
       # @example
       # class MyDealer < EM::Protocols::Zmq2::PreDealer
       #   def receive_message(message)
-      #     puts "Message recieved: #{message.inspect}"
+      #     puts "Message received: #{message.inspect}"
       #   end
       # end
       # dealer = MyDealer.new
@@ -32,7 +32,7 @@ module EventMachine
           end
         end
 
-        # overrides default callback to call +#recieve_message+
+        # overrides default callback to call +#receive_message+
         def receive_message_and_peer(message, peer_identity) # :nodoc:
           receive_message(message)
         end
@@ -61,7 +61,7 @@ module EventMachine
       # @example
       # class MyDealer < EM::Protocols::Zmq2::Dealer
       #   def receive_message(message)
-      #     puts "Message recieved: #{message.inspect}"
+      #     puts "Message received: #{message.inspect}"
       #   end
       # end
       # dealer = MyDealer.new
@@ -106,11 +106,11 @@ module EventMachine
       end
 
       # Convinient Dealer class which accepts callback in constructor, which will be called
-      # on every incoming message (instead of #recieve_message)
+      # on every incoming message (instead of #receive_message)
       #
       # @example
       # dealer = EM::Protocols::Zmq2::DealerCb.new do |message|
-      #   puts "Recieve message #{message.inspect}"
+      #   puts "Receive message #{message.inspect}"
       # end
       # dealer.connect('ipc://rep')
       # dealer.send_message(['hello','world'])
