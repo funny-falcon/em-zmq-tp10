@@ -37,8 +37,8 @@ module EventMachine
       # end
       # rep = EchoBangRep.new
       # rep.bind('ipc://rep')
-      class PreRep
-        include PreRepMixin
+      class PreRep < PreRouter
+        include RepMixin
       end
 
       # ZMQ socket which acts like REP
@@ -55,7 +55,7 @@ module EventMachine
       # rep = EchoBangRep.new
       # rep.bind('ipc://rep')
       class Rep < Router
-        include PreRepMixin
+        include RepMixin
       end
 
     end

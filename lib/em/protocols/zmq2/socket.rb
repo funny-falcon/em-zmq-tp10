@@ -35,6 +35,7 @@ module EM
           @connections = {}
           @conn_addresses = {}
           @bindings = []
+          @after_writting = nil
           @uniq_identity = '%GN%aaaaaaaaaaaa' # ~ 100 years to overflow
         end
 
@@ -89,20 +90,20 @@ module EM
         def unregister_peer(peer_identity)
           @peers.delete peer_identity
           @free_peers.delete peer_identity
+          if @peers.empty? && @after_writting
+            @after_writting.call
+          end
         end
 
         # :startdoc:
 
         # close all connections
-        # when "after_writting" is true, then try to send all queued messages
-        def close(after_writting = false)
-          flush_all_queue  if after_writting
-          @peers.values.each{|c| c.close_connection(after_writting)}
+        # if callback is passed, then it will be called after all messages written to sockets
+        def close(cb = nil, &block)
+          @after_writting = cb || block
+          flush_all_queue  if @after_writting
+          @peers.values.each{|c| c.close_connection(!!@after_writting)}
           @bindings.each{|c| EM.stop_server c }
-        end
-
-        def close_after_writting
-          close(true)
         end
 
         # override to make sure all messages are sent before socket closed

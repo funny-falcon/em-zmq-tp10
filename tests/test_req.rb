@@ -104,7 +104,7 @@ describe 'Req' do
       @req.connect(Native::ZBIND_ADDR)
     end
     let(:messages){
-      1000.times.map{|i| ['hello', i.to_s]} << ['hello', 'xxx']
+      5000.times.map{|i| ['hello', i.to_s]} << ['hello', 'xxx']
     }
 
     it 'should send a lot of requests' do

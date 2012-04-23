@@ -112,7 +112,7 @@ describe 'Dealer' do
     end
   end
 
-  describe EM::Protocols::Zmq2::PreDealer do
+  describe EM::Protocols::Zmq2::Dealer do
     class MyDealer < EM::Protocols::Zmq2::Dealer
       attr :incoming_queue
       def initialize(opts={})
@@ -219,8 +219,9 @@ describe 'Dealer' do
             messages.each{|message|
               dealer.send_message(message).must_equal true
             }
-            dealer.close_after_writting
-            EM.add_timer(0.1){ EM.next_tick{ EM.stop } }
+            dealer.close do
+              EM.next_tick{ EM.stop }
+            end
           }
         }
         thrd.join
