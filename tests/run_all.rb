@@ -1,2 +1,3 @@
-require File.expand_path('../dealer.rb', __FILE__)
-require File.expand_path('../req.rb', __FILE__)
+%w{dealer req router}.each do |what|
+  require File.expand_path("../test_#{what}.rb", __FILE__)
+end

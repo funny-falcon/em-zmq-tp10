@@ -1,37 +1,10 @@
 require 'eventmachine'
-require 'ffi-rzmq'
 require 'minitest/autorun'
+require File.expand_path('../helper.rb', __FILE__)
 
 require 'em/protocols/zmq2/dealer'
 
 describe 'Dealer' do
-  ZBIND_ADDR = 'tcp://127.0.0.1:7890'
-  ZCONNECT_ADDR = 'tcp://127.0.0.1:7891'
-
-  def setup_native
-    @zctx = ZMQ::Context.new
-    @zbind = @zctx.socket(ZMQ::ROUTER)
-    @zbind.identity = 'BIND_ROUTE'
-    @zbind.bind(ZBIND_ADDR)
-    @zconnect = @zctx.socket(ZMQ::ROUTER)
-    @zconnect.identity = 'CONNECT_ROUTE'
-    @zconnect.connect(ZCONNECT_ADDR)
-  end
-
-  def close_native
-    @zbind.setsockopt(ZMQ::LINGER, 0)
-    @zconnect.setsockopt(ZMQ::LINGER, 0)
-    @zbind.close
-    @zconnect.close
-    @zctx.terminate
-  end
-
-  def with_native
-    setup_native
-    yield
-  ensure
-    close_native
-  end
 
   let(:connected) do
     EM::DefaultDeferrable.new
@@ -57,8 +30,8 @@ describe 'Dealer' do
     attr :dealer
     before do
       @dealer = MyPreDealer.new(identity: 'MyDealer', connected: connected)
-      @dealer.connect(ZBIND_ADDR)
-      @dealer.bind(ZCONNECT_ADDR)
+      @dealer.connect(Native::ZBIND_ADDR)
+      @dealer.bind(Native::ZCONNECT_ADDR)
     end
 
     let(:messages) do
@@ -67,7 +40,7 @@ describe 'Dealer' do
 
     it "should be able to send message" do
       results = []
-      with_native do
+      Native.with_socket_pair('ROUTER') do |zbind, zconnect|
         EM.run {
           connected.callback {
             messages.each{|message|
@@ -79,14 +52,14 @@ describe 'Dealer' do
           }
         }
         result = []
-        while @zbind.recv_strings(result, ZMQ::NOBLOCK) != -1
+        while zbind.recv_strings(result, ZMQ::NOBLOCK) != -1
           result.shift.must_equal 'MyDealer'
           results << result
           result = []
         end
         results.size.must_be :>, 0
         results.size.must_be :<, messages.size
-        while @zconnect.recv_strings(result, ZMQ::NOBLOCK) != -1
+        while zconnect.recv_strings(result, ZMQ::NOBLOCK) != -1
           result.shift.must_equal 'MyDealer'
           results << result
           result = []
@@ -97,14 +70,14 @@ describe 'Dealer' do
     end
 
     it "should be able to receive messages" do
-      with_native do
+      Native.with_socket_pair('ROUTER') do |zbind, zconnect|
         EM.run {
           connected.callback {
             messages[0...(messages.size/2)].each{|message|
-              @zbind.send_strings ['MyDealer', *message]
+              zbind.send_strings ['MyDealer', *message]
             }
             messages[(messages.size/2)..-1].each{|message|
-              @zconnect.send_strings ['MyDealer', *message]
+              zconnect.send_strings ['MyDealer', *message]
             }
           }
           cb = proc do
@@ -125,12 +98,13 @@ describe 'Dealer' do
     it "should be able to connect after timeout" do
       connected_ = false
       EM.run do
-        connected.callback{ connected_ = true;
+        connected.callback{
+          connected_ = true;
           EM.next_tick{ EM.stop }
         }
         EM.add_timer(0.1) do
           EM.defer(proc do
-            with_native{ sleep(0.1); }
+            Native.with_socket_pair('ROUTER'){ sleep(0.1); }
           end)
         end
       end
@@ -158,15 +132,15 @@ describe 'Dealer' do
     attr :dealer
     before do
       @dealer = MyDealer.new(identity: 'MyDealer', connected: connected)
-      @dealer.connect(ZBIND_ADDR)
-      @dealer.bind(ZCONNECT_ADDR)
+      @dealer.connect(Native::ZBIND_ADDR)
+      @dealer.bind(Native::ZCONNECT_ADDR)
     end
 
     let(:messages) do
       10000.times.map{|n| ['', 'hello', 'world', n.to_s]}
     end
 
-    class Collector
+    class RouteCollector
       attr :res_a, :res_b
       def initialize(till)
         @till = till
@@ -207,9 +181,9 @@ describe 'Dealer' do
     end
 
     it "should be able to send a lot of messages" do
-      collector = Collector.new(messages.size)
-      with_native do
-        collector.set_sockets @zbind, @zconnect
+      collector = RouteCollector.new(messages.size)
+      Native.with_socket_pair('ROUTER') do |zbind, zconnect|
+        collector.set_sockets zbind, zconnect
         thrd = collector.thread
         EM.run {
           connected.callback {
@@ -236,9 +210,9 @@ describe 'Dealer' do
     end
 
     it "should be closed after writting" do
-      collector = Collector.new(messages.size)
-      with_native do
-        collector.set_sockets @zbind, @zconnect
+      collector = RouteCollector.new(messages.size)
+      Native.with_socket_pair('ROUTER') do |zbind, zconnect|
+        collector.set_sockets zbind, zconnect
         thrd = collector.thread
         EM.run {
           connected.callback {

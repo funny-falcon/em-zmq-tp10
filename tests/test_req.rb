@@ -1,31 +1,10 @@
 require 'eventmachine'
-require 'ffi-rzmq'
 require 'minitest/autorun'
+require File.expand_path('../helper.rb', __FILE__)
 
 require 'em/protocols/zmq2/req'
 
 describe 'Req' do
-  ZBIND_ADDR = 'tcp://127.0.0.1:7890'
-  def setup_native
-    @zctx = ZMQ::Context.new
-    @zrep = @zctx.socket(ZMQ::REP)
-    @zrep.identity = 'BIND_REP'
-    @zrep.bind(ZBIND_ADDR)
-  end
-
-  def close_native
-    @zrep.setsockopt(ZMQ::LINGER, 0)
-    @zrep.close
-    @zctx.terminate
-  end
-
-  def with_native
-    setup_native
-    yield
-  ensure
-    close_native
-  end
-
   let(:connected) do
     EM::DefaultDeferrable.new
   end
@@ -52,23 +31,21 @@ describe 'Req' do
     attr :req
     before do
       @req = MyPreReq.new(identity: 'REQ', connected: connected)
-      @req.connect(ZBIND_ADDR)
+      @req.connect(Native::ZBIND_ADDR)
     end
+
     let(:messages){
-      ar = 300.times.map{|i| ['hello', i.to_s]}
-      ar << ['hello', 'xxx']
-      ar
+      300.times.map{|i| ['hello', i.to_s]} << ['hello', 'xxx']
     }
 
     it 'should send requests' do
-      with_native do
+      Native.with_socket('REP') do |zrep|
         thrd = Thread.new do
           messages.size.times do
             ar = []
-            @zrep.recv_strings ar
+            zrep.recv_strings ar
             ar[0] = 'world'
-            @zrep.send_strings ar
-            break if ar.last == 'xxx'
+            zrep.send_strings ar
           end
         end
         EM.run {
@@ -93,9 +70,9 @@ describe 'Req' do
           }
         }
         thrd.join
-        (req.incoming_queue - messages).must_be_empty
-        (messages - req.incoming_queue).must_be_empty
       end
+      (req.incoming_queue - messages).must_be_empty
+      (messages - req.incoming_queue).must_be_empty
     end
   end
 
@@ -124,23 +101,20 @@ describe 'Req' do
     attr :req
     before do
       @req = MyReq.new({identity: 'REQ'}, connected, finished)
-      @req.connect(ZBIND_ADDR)
+      @req.connect(Native::ZBIND_ADDR)
     end
     let(:messages){
-      ar = 1000.times.map{|i| ['hello', i.to_s]}
-      ar << ['hello', 'xxx']
-      ar
+      1000.times.map{|i| ['hello', i.to_s]} << ['hello', 'xxx']
     }
 
     it 'should send a lot of requests' do
-      with_native do
+      Native.with_socket('REP') do |zrep|
         thrd = Thread.new do
           messages.size.times do
             ar = []
-            @zrep.recv_strings ar
+            zrep.recv_strings ar
             ar[0] = 'world'
-            @zrep.send_strings ar
-            break if ar.last == 'xxx'
+            zrep.send_strings ar
           end
         end
         EM.run {
@@ -154,9 +128,9 @@ describe 'Req' do
           }
         }
         thrd.join
-        (req.incoming_queue - messages).must_be_empty
-        (messages - req.incoming_queue).must_be_empty
       end
+      (req.incoming_queue - messages).must_be_empty
+      (messages - req.incoming_queue).must_be_empty
     end
   end
 end

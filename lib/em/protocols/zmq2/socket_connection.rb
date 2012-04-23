@@ -32,7 +32,7 @@ module EventMachine
         # or on https://github.com/funny-falcon/eventmachine/tree/sent_data
         # use timers otherwise
         def sent_data
-          @socket.peer_free(@peer_idenity, self)  if not_too_busy?
+          @socket.peer_free(@peer_identity, self)  if not_too_busy?
         end
 
         if method_defined?(:outbound_data_count)

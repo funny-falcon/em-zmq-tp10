@@ -185,7 +185,7 @@ module EM
         end
 
         def generated_identity?(id)
-          id.starts_with?(GENERATED)
+          id.start_with?(GENERATED)
         end
 
         def parse_address(addr)

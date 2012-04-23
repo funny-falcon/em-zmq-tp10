@@ -44,8 +44,10 @@ module EventMachine
           return true  unless peer_queue = @replies[peer_identity]
           until peer_queue.empty?
             message = peer_queue.first
-            if (connect = choose_peer(peer_identity, even_if_busy)) && 
-                connect.send_strings(peer_queue.first)
+            if (connect = choose_peer(peer_identity, even_if_busy)) &&
+                !connect.error? &&
+                (even_if_busy || connect.not_too_busy?)
+              connect.send_strings(message[1..-1])
               peer_queue.shift
             else
               return false
@@ -58,7 +60,7 @@ module EventMachine
         def send_message(message)
           peer_identity = message.first
           flush_queue(peer_identity) && super(message) || begin 
-            unless generated_idenity?(peer_identity)
+            unless generated_identity?(peer_identity)
               push_to_queue((@replies[peer_identity]||=[]), message)
             end
           end
