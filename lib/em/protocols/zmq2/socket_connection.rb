@@ -1,3 +1,4 @@
+require 'eventmachine'
 require 'em/protocols/zmq2'
 module EventMachine
   module Protocols

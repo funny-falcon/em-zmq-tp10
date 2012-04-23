@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
-require File.expand_path('../lib/em-zmq-tp10', __FILE__)
+$: << File.expand_path('../lib', __FILE__)
+require 'em-zmq-tp10'
 
 Gem::Specification.new do |gem|
   gem.authors       = ["Sokolov Yura 'funny-falcon'"]
@@ -16,7 +17,7 @@ incoming messages.}
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.name          = "em-zmq-tp10"
   gem.require_paths = ["lib"]
-  gem.version       = Em::Protocols::Zmq2::VERSION
+  gem.version       = EM::Protocols::Zmq2::VERSION
   gem.add_runtime_dependency 'eventmachine'
   gem.add_development_dependency 'ffi-rzmq'
   gem.required_ruby_version = '>= 1.9.2'

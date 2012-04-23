@@ -44,7 +44,7 @@ describe 'Dealer' do
         EM.run {
           connected.callback {
             messages.each{|message|
-              dealer.send_message(message).must_equal true
+              dealer.send_message(message)
             }
             EM.add_timer(0.1){
               EM.next_tick{ EM.stop }
@@ -97,15 +97,17 @@ describe 'Dealer' do
 
     it "should be able to connect after timeout" do
       connected_ = false
+      finished_ = false
       EM.run do
         connected.callback{
           connected_ = true;
-          EM.next_tick{ EM.stop }
         }
         EM.add_timer(0.1) do
           EM.defer(proc do
-            Native.with_socket_pair('ROUTER'){ sleep(0.1); }
-          end)
+            Native.with_socket_pair('ROUTER'){ sleep(0.3); }
+          end, proc{
+            EM.next_tick{ EM.stop }
+          })
         end
       end
       connected_.must_equal true
@@ -114,11 +116,12 @@ describe 'Dealer' do
 
   describe EM::Protocols::Zmq2::Dealer do
     class MyDealer < EM::Protocols::Zmq2::Dealer
-      attr :incoming_queue
+      attr :incoming_queue, :canceled_messages
       def initialize(opts={})
         super(opts)
         @connected = opts[:connected]
         @incoming_queue = []
+        @canceled_messages = []
       end
       def peer_free(peer_ident, connection)
         super
@@ -126,6 +129,9 @@ describe 'Dealer' do
       end
       def receive_message(message)
         @incoming_queue << message
+      end
+      def cancel_message(message)
+        @canceled_messages << message
       end
     end
 
@@ -158,7 +164,6 @@ describe 'Dealer' do
       end
       def thread
         Thread.new do
-          begin
           result = []
           until full?
             while @zbind.recv_strings(result, ZMQ::NOBLOCK) != -1
@@ -173,9 +178,6 @@ describe 'Dealer' do
             end
             sleep(0.01)
           end
-          rescue
-            puts $!
-          end
         end
       end
     end
@@ -188,16 +190,11 @@ describe 'Dealer' do
         EM.run {
           connected.callback {
             messages.each{|message|
-              dealer.send_message(message).must_equal true
+              dealer.send_message(message)
             }
-            cb = lambda do
-              unless collector.full?
-                EM.add_timer(0.5, cb)
-              else
-                EM.next_tick{ EM.stop }
-              end
+            dealer.close do
+              EM.next_tick{ EM.stop }
             end
-            cb.call
           }
         }
         thrd.join
@@ -217,7 +214,7 @@ describe 'Dealer' do
         EM.run {
           connected.callback {
             messages.each{|message|
-              dealer.send_message(message).must_equal true
+              dealer.send_message(message)
             }
             dealer.close do
               EM.next_tick{ EM.stop }

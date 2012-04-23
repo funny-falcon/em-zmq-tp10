@@ -4,7 +4,7 @@ require File.expand_path('../helper.rb', __FILE__)
 
 require 'em/protocols/zmq2/rep'
 
-describe 'Req' do
+describe 'Rep' do
   let(:connected) do
     EM::DefaultDeferrable.new
   end
