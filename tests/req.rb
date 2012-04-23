@@ -26,7 +26,7 @@ describe 'Req' do
     close_native
   end
 
-  let(:defered) do
+  let(:connected) do
     EM::DefaultDeferrable.new
   end
 
@@ -35,12 +35,12 @@ describe 'Req' do
       attr :incoming_queue
       def initialize(opts={})
         super
-        @defered = opts[:defered]
+        @connected = opts[:connected]
         @incoming_queue = []
       end
       def peer_free(peer_identity, connection)
         super
-        @defered.succeed
+        @connected.succeed
       end
       def receive_reply(message, data, request_id)
         message.first.must_equal 'world'
@@ -49,7 +49,7 @@ describe 'Req' do
       end
     end
 
-    let(:req){ MyPreReq.new(identity: 'REQ', defered: defered)}
+    let(:req){ MyPreReq.new(identity: 'REQ', connected: connected)}
     let(:messages){
       ar = 300.times.map{|i| ['hello', i.to_s]}
       ar << ['hello', 'xxx']
@@ -69,7 +69,7 @@ describe 'Req' do
         end
         EM.run {
           req.connect(ZBIND_ADDR)
-          defered.callback {
+          connected.callback {
             dup = messages.dup
             cb = lambda {
               if dup.empty?
@@ -118,7 +118,7 @@ describe 'Req' do
     end
 
     let(:finished){ EM::DefaultDeferrable.new }
-    let(:req){ MyReq.new({identity: 'REQ'}, defered, finished)}
+    let(:req){ MyReq.new({identity: 'REQ'}, connected, finished)}
     let(:messages){
       ar = 1000.times.map{|i| ['hello', i.to_s]}
       ar << ['hello', 'xxx']
@@ -138,7 +138,7 @@ describe 'Req' do
         end
         EM.run {
           req.connect(ZBIND_ADDR)
-          defered.callback {
+          connected.callback {
             messages.each{|message|
               req.send_request(message, message.last)
             }

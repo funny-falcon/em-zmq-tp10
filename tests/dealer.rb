@@ -33,7 +33,7 @@ describe 'Dealer' do
     close_native
   end
 
-  let(:defered) do
+  let(:connected) do
     EM::DefaultDeferrable.new
   end
 
@@ -42,12 +42,12 @@ describe 'Dealer' do
       attr :incoming_queue
       def initialize(opts={})
         super(opts)
-        @defered = opts[:defered]
+        @connected = opts[:connected]
         @incoming_queue = []
       end
       def peer_free(peer_ident, connection)
         super
-        @defered.succeed  if @free_peers.size == 2
+        @connected.succeed  if @free_peers.size == 2
       end
       def receive_message(message)
         @incoming_queue << message
@@ -55,21 +55,20 @@ describe 'Dealer' do
     end
 
     let(:dealer) do
-      MyPreDealer.new(identity: 'MyDealer', defered: defered)
+      MyPreDealer.new(identity: 'MyDealer', connected: connected)
     end
 
     let(:messages) do
-      100.times.map{|n| ['', 'hello', 'world'] << n.to_s}
+      100.times.map{|n| ['', 'hello', 'world', n.to_s]}
     end
 
     it "should be able to send message" do
       results = []
       with_native do
         EM.run {
-          p defered.instance_variable_get("@defered_status")
           dealer.connect(ZBIND_ADDR)
           dealer.bind(ZCONNECT_ADDR)
-          defered.callback {
+          connected.callback {
             messages.each{|message|
               dealer.send_message(message).must_equal true
             }
@@ -101,7 +100,7 @@ describe 'Dealer' do
         EM.run {
           dealer.connect(ZBIND_ADDR)
           dealer.bind(ZCONNECT_ADDR)
-          defered.callback {
+          connected.callback {
             messages[0...(messages.size/2)].each{|message|
               @zbind.send_strings ['MyDealer', *message]
             }
@@ -125,11 +124,11 @@ describe 'Dealer' do
     end
 
     it "should be able to connect after timeout" do
-      connected = false
+      connected_ = false
       EM.run do
         dealer.connect(ZBIND_ADDR)
         dealer.bind(ZCONNECT_ADDR)
-        defered.callback{ connected = true;
+        connected.callback{ connected_ = true;
           EM.next_tick{ EM.stop }
         }
         EM.add_timer(0.1) do
@@ -138,7 +137,7 @@ describe 'Dealer' do
           end)
         end
       end
-      connected.must_equal true
+      connected_.must_equal true
     end
   end
 
@@ -147,12 +146,12 @@ describe 'Dealer' do
       attr :incoming_queue
       def initialize(opts={})
         super(opts)
-        @defered = opts[:defered]
+        @connected = opts[:connected]
         @incoming_queue = []
       end
       def peer_free(peer_ident, connection)
         super
-        @defered.succeed  if @free_peers.size == 2
+        @connected.succeed  if @free_peers.size == 2
       end
       def receive_message(message)
         @incoming_queue << message
@@ -160,11 +159,11 @@ describe 'Dealer' do
     end
 
     let(:dealer) do
-      MyDealer.new(identity: 'MyDealer', defered: defered)
+      MyDealer.new(identity: 'MyDealer', connected: connected)
     end
 
     let(:messages) do
-      10000.times.map{|n| ['', 'hello', 'world'] << n.to_s}
+      10000.times.map{|n| ['', 'hello', 'world', n.to_s]}
     end
 
     class Collector
@@ -213,10 +212,9 @@ describe 'Dealer' do
         collector.set_sockets @zbind, @zconnect
         thrd = collector.thread
         EM.run {
-          p defered.instance_variable_get("@defered_status")
           dealer.connect(ZBIND_ADDR)
           dealer.bind(ZCONNECT_ADDR)
-          defered.callback {
+          connected.callback {
             messages.each{|message|
               dealer.send_message(message).must_equal true
             }
@@ -245,10 +243,9 @@ describe 'Dealer' do
         collector.set_sockets @zbind, @zconnect
         thrd = collector.thread
         EM.run {
-          p defered.instance_variable_get("@defered_status")
           dealer.connect(ZBIND_ADDR)
           dealer.bind(ZCONNECT_ADDR)
-          defered.callback {
+          connected.callback {
             messages.each{|message|
               dealer.send_message(message).must_equal true
             }
