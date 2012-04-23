@@ -243,11 +243,11 @@ module EventMachine
                 k, message = @requests.shift
                 cancel_message(message)
               end
-              @requests[request.first] = request
+              @requests[request.first] = request  if request
               true
             end
           else
-            @requests[request.first] = request
+            @requests[request.first] = request  if request
             true
           end
         end

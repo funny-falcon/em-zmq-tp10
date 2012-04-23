@@ -133,12 +133,13 @@ describe 'Router' do
 
   describe EM::Protocols::Zmq2::Router do
     class MyRouter < EM::Protocols::Zmq2::Router
-      attr :incoming_queue
+      attr :incoming_queue, :canceled_messages
       def initialize(connected, finished, opts={})
         super opts
         @connected = connected
         @finished = finished
         @incoming_queue = {}
+        @canceled_messages = []
       end
       def peer_free(peer_ident, connection)
         super
@@ -147,6 +148,9 @@ describe 'Router' do
       def receive_message(message)
         (@incoming_queue[message.first] ||= []) << message[1..-1]
         @finished.succeed  if message.last == 'xxx'
+      end
+      def cancel_message(message)
+        @canceled_messages << message
       end
     end
 
@@ -185,6 +189,33 @@ describe 'Router' do
       end
       collector.res_a.must_equal halves[0]
       collector.res_b.must_equal halves[1]
+    end
+
+    it "should not accept message on low hwm with strategy :drop_last" do
+      router.hwm = 1
+      router.hwm_strategy = :drop_last
+      EM.run {
+        router.send_message(['FIRST_PEER', 'hi', 'ho1']).must_equal true
+        router.send_message(['FIRST_PEER', 'hi', 'ho2']).wont_equal true
+        router.send_message(['SECOND_PEER', 'hi', 'ho1']).must_equal true
+        router.send_message(['SECOND_PEER', 'hi', 'ho2']).wont_equal true
+        EM.stop
+      }
+    end
+
+    it "should cancel earlier message on low hwm with strategy :drop_first" do
+      router.hwm = 1
+      router.hwm_strategy = :drop_first
+      EM.run {
+        router.send_message(['FIRST_PEER', 'hi', 'ho1']).must_equal true
+        router.send_message(['FIRST_PEER', 'hi', 'ho2']).must_equal true
+        router.send_message(['SECOND_PEER', 'hi', 'ho1']).must_equal true
+        router.send_message(['SECOND_PEER', 'hi', 'ho2']).must_equal true
+        EM.stop
+      }
+      router.canceled_messages.count.must_equal 2
+      router.canceled_messages.must_include ['FIRST_PEER', 'hi', 'ho1']
+      router.canceled_messages.must_include ['SECOND_PEER', 'hi', 'ho1']
     end
   end
 end

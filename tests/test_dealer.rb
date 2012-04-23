@@ -229,5 +229,26 @@ describe 'Dealer' do
       (messages - collector.full_res).must_be_empty
       (collector.full_res - messages).must_be_empty
     end
+
+    it "should not accept message on low hwm with strategy :drop_last" do
+      dealer.hwm = 1
+      dealer.hwm_strategy = :drop_last
+      EM.run {
+        dealer.send_message(['hi', 'ho1']).must_equal true
+        dealer.send_message(['hi', 'ho2']).wont_equal true
+        EM.stop
+      }
+    end
+
+    it "should cancel earlier message on low hwm with strategy :drop_first" do
+      dealer.hwm = 1
+      dealer.hwm_strategy = :drop_first
+      EM.run {
+        dealer.send_message(['hi', 'ho1']).must_equal true
+        dealer.send_message(['hi', 'ho2']).must_equal true
+        EM.stop
+      }
+      dealer.canceled_messages.must_equal [['hi', 'ho1']]
+    end
   end
 end

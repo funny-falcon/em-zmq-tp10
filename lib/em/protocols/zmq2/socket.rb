@@ -127,7 +127,7 @@ module EM
         # Change hwm
         def hwm=(new_hwm)
           old_hwm, @hwm = @hwm, new_hwm
-          react_on_hwm if old_hwm > @hwm
+          react_on_hwm_decrease if old_hwm > @hwm
           @hwm
         end
 
@@ -157,14 +157,14 @@ module EM
               false
             when :drop_first
               hwm = @hwm - (message ? 1 : 0)
-              queue.shift(queue.size - hwm).each{|mesage|
-                cancel_message(message)
+              queue.shift(queue.size - hwm).each{|earlier|
+                cancel_message(earlier)
               }
               queue.push(message)  if message
               true
             end
           else
-            queue.push(message)
+            queue.push(message) if message
             true
           end
         end

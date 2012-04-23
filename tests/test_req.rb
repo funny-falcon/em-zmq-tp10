@@ -78,12 +78,13 @@ describe 'Req' do
 
   describe EM::Protocols::Zmq2::Req do
     class MyReq < EM::Protocols::Zmq2::Req
-      attr :incoming_queue
+      attr :incoming_queue, :canceled_requests
       def initialize(opts={}, defered_conn, defered_mess)
         super opts
         @defered_conn = defered_conn
         @defered_mess = defered_mess
         @incoming_queue = []
+        @canceled_requests = []
       end
       def peer_free(peer_identity, connection)
         super
@@ -94,6 +95,9 @@ describe 'Req' do
         message.last.must_equal data.to_s
         @incoming_queue << ['hello', message.last]
         @defered_mess.succeed  if message.last == 'xxx'
+      end
+      def cancel_request(request_id)
+        @canceled_requests << request_id
       end
     end
 
@@ -131,6 +135,31 @@ describe 'Req' do
       end
       (req.incoming_queue - messages).must_be_empty
       (messages - req.incoming_queue).must_be_empty
+    end
+
+    it "should not accept message on low hwm with strategy :drop_last" do
+      req.hwm = 2
+      req.hwm_strategy = :drop_last
+      EM.run {
+        req.send_request(['hi', 'ho1'], nil).must_be_kind_of String
+        req.send_request(['hi', 'ho2'], nil).must_be_kind_of String
+        req.send_request(['hi', 'ho3'], nil).wont_be_kind_of String
+        EM.stop
+      }
+    end
+
+    it "should cancel earlier message on low hwm with strategy :drop_first" do
+      req.hwm = 2
+      req.hwm_strategy = :drop_first
+      first_req = nil
+      EM.run {
+        first_req = req.send_request(['hi', 'ho1'], nil)
+        first_req.must_be_kind_of String
+        req.send_request(['hi', 'ho2'], nil).must_be_kind_of String
+        req.send_request(['hi', 'ho3'], nil).must_be_kind_of String
+        EM.stop
+      }
+      req.canceled_requests.must_equal [first_req]
     end
   end
 end
