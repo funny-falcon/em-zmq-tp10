@@ -1,4 +1,5 @@
 require 'em/protocols/zmq2/socket'
+require 'em/protocols/zmq2/queue_per_peer'
 module EventMachine
   module Protocols
     module Zmq2
@@ -15,6 +16,14 @@ module EventMachine
           raise NoMethodError
         end
 
+        def send_message(message, even_if_busy = false)
+          if connect = choose_peer(message.first, even_if_busy)
+            connect.send_strings(message[1..-1])
+            true
+          end
+        end
+
+      private
         # by default chooses peer by peer_identity, but you could wary it
         def choose_peer(peer_identity, even_if_busy = false)
           if (connect = @peers[peer_identity]) && !connect.error? &&
@@ -23,60 +32,35 @@ module EventMachine
           end
         end
 
-        def send_message(message, even_if_busy = false)
-          if connect = choose_peer(message.first, even_if_busy)
-            connect.send_strings(message[1..-1])
-            true
-          end
-        end
       end
 
       # ZMQ socket which acts like Router.
       # It counts first message string as peer identity when sending message and
       # prepends socket identity to message on receiving.
       class Router < PreRouter
-        def initialize(opts = {})
-          super
-          @replies = {}
-        end
-
-        def flush_queue(peer_identity, even_if_busy = false)
-          return true  unless peer_queue = @replies[peer_identity]
-          until peer_queue.empty?
-            message = peer_queue.first
-            if (connect = choose_peer(peer_identity, even_if_busy)) &&
-                !connect.error? &&
-                (even_if_busy || connect.not_too_busy?)
-              connect.send_strings(message[1..-1])
-              peer_queue.shift
-            else
-              return false
-            end
-          end
-          @replies.delete peer_identity
-          true
-        end
-
+        include QueuePerPeer
         def send_message(message)
           peer_identity = message.first
-          flush_queue(peer_identity) && super(message) || begin 
-            unless generated_identity?(peer_identity)
-              push_to_queue((@replies[peer_identity]||=[]), message)
+          unless (queue = @queues[peer_identity])
+            if generated_identity?(peer_identity)
+              return false
+            else
+              queue = @queues[peer_identity] = []
             end
+          end
+          peer = choose_peer(peer_identity)
+          if peer && (queue.empty? || flush_queue(queue, peer)) &&
+             !peer.error? && peer.not_too_busy?
+            peer.send_strings(message[1..-1])
+            true
+          else
+            push_to_queue(queue, message)
           end
         end
 
-        def flush_all_queue
-          @replies.keys.each{|peer_identity| flush_queue(peer_identity, true)}
-        end
-
-        def react_on_hwm_decrease
-          @replies.each{|_, queue| push_to_queue(queue)}
-        end
       private
-        def peer_free(peer, connection)
-          super
-          flush_queue(peer)
+        def form_message(message)
+          message[1..-1]
         end
       end
 

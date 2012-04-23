@@ -1,8 +1,6 @@
 module EventMachine
   module Protocols
     module Zmq2
-      VERSION = '0.0.1'
-
       EMPTY = ''.freeze
       SMALL_TIMEOUT = 0.03
       HWM_INFINITY = 2**20

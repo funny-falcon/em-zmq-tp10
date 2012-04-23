@@ -39,6 +39,7 @@ module EventMachine
       # rep.bind('ipc://rep')
       class PreRep < PreRouter
         include RepMixin
+        private :send_message
       end
 
       # ZMQ socket which acts like REP
@@ -56,6 +57,7 @@ module EventMachine
       # rep.bind('ipc://rep')
       class Rep < Router
         include RepMixin
+        private :send_message
       end
 
     end

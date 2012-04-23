@@ -25,7 +25,7 @@ module EventMachine
           if @peer_identity
             @socket.unregister_peer(@peer_identity)
           end
-          @socket.not_connected(self)  if err
+          @socket.not_connected(self)
         end
 
         # use watching on outbound queue when possible
@@ -33,7 +33,7 @@ module EventMachine
         # or on https://github.com/funny-falcon/eventmachine/tree/sent_data
         # use timers otherwise
         def sent_data
-          @socket.peer_free(@peer_identity, self)  if not_too_busy?
+          @socket.peer_free(@peer_identity, self) if not_too_busy?
         end
 
         if method_defined?(:outbound_data_count)
@@ -42,7 +42,6 @@ module EventMachine
           end
         else
           def _not_too_busy?
-            #puts "_not_too_busy? #{@peer_identity} #{get_outbound_data_size}"
             get_outbound_data_size < 2048
           end
         end

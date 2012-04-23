@@ -85,15 +85,15 @@ module EventMachine
           true
         end
 
-        def flush_all_queue
-          flush_queue(true)
-        end
-
         def send_message(message)
           flush_queue && super(message) || push_to_queue(@write_queue, message)
         end
 
       private
+        def flush_all_queue
+          flush_queue(true)
+        end
+
         def peer_free(peer_identity, connection)
           super
           flush_queue

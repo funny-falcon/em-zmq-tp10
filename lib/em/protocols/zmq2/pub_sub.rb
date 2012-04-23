@@ -1,5 +1,6 @@
 require 'em/protocols/zmq2/socket'
-module EvenMachine
+require 'em/protocols/zmq2/queue_per_peer'
+module EventMachine
   module Protocols
     module Zmq2
       # ZMQ socket which acts as SUB
@@ -11,7 +12,7 @@ module EvenMachine
           end
 
           def call(message)
-            @sub.recieve_request(message)
+            @sub.receive_message(message)
           end
         end
 
@@ -19,7 +20,7 @@ module EvenMachine
           super
           @subscriptions = {}
           @default_action = DefaultAction.new(self)
-          subscrive_many opts[:subscribe]
+          subscribe_many [*opts[:subscribe]]
         end
 
         def subscribe_many(subscriptions)
@@ -30,7 +31,7 @@ module EvenMachine
           @subscriptions[s] = cb || block || @default_action
         end
 
-        def recieve_message(message)
+        def receive_message_and_peer(message, peer)
           for sub, callback in @subscriptions
             matched = if String === sub
                         message.first.start_with?(sub)
@@ -43,37 +44,48 @@ module EvenMachine
           end
         end
 
-        def recieve_request(message)
+        def receive_message(message)
           raise NoMethodError
+        end
+
+        private :send_message
+      end
+
+      class PrePub < Socket
+        def send_message(message, even_if_busy = false)
+          sent = false
+          for identity, peer in @peers
+            if !peer.error? && (even_if_busy || peer.not_too_busy?)
+              peer.send_strings(message)
+              sent = true
+            end
+          end
         end
       end
 
       class Pub < Socket
-        def initialize(opts = {})
-          super
-          @queues = {}
-        end
-
-        def flush_queue(peer_identity)
-          return  true  unless queue = @queues[peer_identity]
-          return  false unless peer = @peers[peer_identity]
-
-          until @queues.empty?
-            return false  if peer.error?
-            peer.send_strings(@queues.shift)
-          end
-          @queues.delete(peer_identity)
-          true
-        end
+        include QueuePerPeer
 
         def send_message(message)
-          for identity, peer in @peers
-            if flush_queue(identity) && !peer.error?
+          sent = false
+          idents = @peers.keys | @queues.keys
+          for identity in idents
+            peer = @free_peers[identity]
+            queue = @queues[identity]
+            if peer && (queue.empty? || flush_queue(queue, peer)) && 
+               !peer.error? && peer.not_too_busy?
               peer.send_strings(message)
+              sent = true
             else
-              (@queues[identity] ||= []) << message
+              pushed = push_to_queue(queue, message)
+              sent ||= pushed
             end
           end
+          sent
+        end
+      private
+        def cancel_message(message)
+          false
         end
       end
     end
