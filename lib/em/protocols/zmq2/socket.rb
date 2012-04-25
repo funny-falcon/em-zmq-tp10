@@ -34,6 +34,7 @@ module EM
           @free_peers = {}
           @connections = {}
           @conn_addresses = {}
+          @reconnect_timers = {}
           @bindings = []
           @after_writting = nil
           @uniq_identity = '%GN%aaaaaaaaaaaa' # ~ 100 years to overflow
@@ -57,6 +58,7 @@ module EM
         def connect(addr)
           kind, *socket = parse_address(addr)
           EM.schedule {
+            @reconnect_timers.delete addr
             unless @conn_addresses[ addr ]
               connection = case kind
                   when :tcp
@@ -74,9 +76,10 @@ module EM
         def not_connected(connection)
           if addr = @connections.delete(connection)
             @conn_addresses.delete addr
-            EM.add_timer(SMALL_TIMEOUT) do
+            timer = EM.add_timer(SMALL_TIMEOUT) do
               connect(addr)
             end
+            @reconnect_timers[addr] = timer
           end
         end
 
@@ -102,6 +105,7 @@ module EM
         def close(cb = nil, &block)
           @connections.clear
           @conn_addresses.clear
+          @reconnect_timers.each{|_, timer| EM.cancel_timer(timer)}
           @after_writting = cb || block
           flush_all_queue  if @after_writting
           @peers.values.each{|c| c.close_connection(!!@after_writting)}
@@ -194,7 +198,7 @@ module EM
         def parse_address(addr)
           case addr
           when %r{tcp://([^:]+):(\d+)}
-            [:tcp, $1, $2]
+            [:tcp, $1, $2.to_i]
           when %r{ipc://(.+)}
             [:ipc, $1]
           else
