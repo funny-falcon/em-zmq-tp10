@@ -162,4 +162,68 @@ describe 'Req' do
       req.canceled_requests.must_equal [first_req]
     end
   end
+
+  describe EM::Protocols::Zmq2::ReqDefer do
+    class TSTRep < EM::Protocols::Zmq2::Rep
+      include DeferredMixin
+      def receive_request(message, environment)
+        send_reply([message.first, 'yeah'], environment)
+      end
+      def peer_free(peer, conn)
+        super
+        @connected.succeed
+      end
+    end
+    it "should correctly setup and call deferrable" do
+      req = EM::Protocols::Zmq2::ReqDefer.new
+      def req.send_message(message, even = false)
+        res = super
+        res
+      end
+      rep = TSTRep.new(connected: connected)
+      rep.bind('inproc://tst')
+      first_success, first_error = nil, nil
+      second_success, second_error = nil, nil
+          require 'pp'
+      EM.run {
+        uniq = Object.new.freeze
+        first = nil
+        follow = proc do |null, data|
+          data.must_equal uniq
+          null.must_be_nil
+          req.connect('inproc://tst')
+          connected.callback do
+            stop = proc{ EM.next_tick{ EM.stop } }
+            second = req.send_request(['hi', 'ho'], uniq) do |reply, data|
+              second_success = true
+              reply.must_equal ['hi', 'yeah']
+              data.must_equal uniq
+            end
+            second.must_be_kind_of EM::Deferrable
+            second.errback do
+              second_error = true
+            end
+            second.callback &stop
+            second.errback &stop
+          end
+        end
+        first = req.send_request(['hi', 'ho'], uniq) do |reply, data|
+          first_success = true
+          reply.must_equal ['hi', 'yeah']
+          data.must_equal uniq
+        end
+        first.must_be_kind_of EM::Deferrable
+        first.timeout(0.3, 1, uniq)
+        first.errback do
+          first_error = true
+        end
+        first.callback &follow
+        first.errback &follow
+      }
+      first_success.must_equal nil
+      first_error.must_equal true
+      second_success.must_equal true
+      second_error.must_equal nil
+    end
+  end
 end

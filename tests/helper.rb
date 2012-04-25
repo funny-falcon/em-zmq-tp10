@@ -71,13 +71,11 @@ module Native
   end
 end
 
-module SocketMixin
-  attr :incoming_queue
+module DeferredMixin
   def initialize(opts={})
     super(opts)
     @connected = opts[:connected]
     @finished = opts[:finished]
-    @incoming_queue = []
   end
 
   attr_writer :connected, :finished
@@ -88,6 +86,14 @@ module SocketMixin
       @connected, connected = nil, @connected
       connected.succeed
     end
+  end
+end
+
+module IncomingMixin
+  attr :incoming_queue
+  def initialize(opts={})
+    super
+    @incoming_queue = []
   end
 
   def receive_message(message)

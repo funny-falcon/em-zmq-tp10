@@ -10,11 +10,8 @@ describe 'InProc' do
   end
 
   class IPDealer < EM::Protocols::Zmq2::Dealer
-    include SocketMixin
-    def initialize(opts={})
-      super(opts)
-      @connected = opts[:connected]
-    end
+    include DeferredMixin
+    include IncomingMixin
     def peers
       @peers
     end
@@ -87,10 +84,12 @@ describe 'InProc' do
   end
 
   class IPPub < EM::Protocols::Zmq2::Pub
-    include SocketMixin
+    include DeferredMixin
+    include IncomingMixin
   end
   class IPSub < EM::Protocols::Zmq2::Sub
-    include SocketMixin
+    include DeferredMixin
+    include IncomingMixin
   end
   it "should pub messages to inproc and tcp sub" do
     pub = IPPub.new(identity: 'pub', connected: connected)

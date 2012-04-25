@@ -295,29 +295,30 @@ module EventMachine
       #     puts "Another callback #{reply} #{data}"
       #   end
       class ReqDefer < Req
-        class Wrapped < ::Struct.new(:data, :deferable); end
+        class Wrapped < ::Struct.new(:data, :deferrable); end
 
         def cancel_request(request_id)
           wrapped = super
-          wrapped.deferable.fail(wrapped.data)
+          wrapped.deferrable.fail(nil, wrapped.data)
         end
         def receive_reply(reply, wrapped, request_id)
-          wrapped.deferable.success(reply, wrapped.data)
+          wrapped.deferrable.succeed(reply, wrapped.data)
         end
         def send_request(message, data, callback = nil, &block)
-          deferable = EM::DefaultDeferable.new
-          wrapped = Wrapped.new(data, deferable)
-          if callback
-            deferable.callback{|reply, data| callback.call(reply, data)}
-          elsif block
-            deferable.callback &block
+          deferrable = EM::DefaultDeferrable.new
+          wrapped = Wrapped.new(data, deferrable)
+          callback ||= block
+          if Proc === callback
+            deferrable.callback &callback
+          else
+            deferrable.callback{|reply, data| callback.call(reply, data)}
           end
           if request_id = super(message, wrapped)
-            deferable.errback{ cancel_request(request_id) }
+            deferrable.errback{ cancel_request(request_id) }
           else
-            deferable.fail(data)
+            deferrable.fail(nil, data)
           end
-          deferable
+          deferrable
         end
       end
 
