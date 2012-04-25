@@ -4,6 +4,31 @@ require 'em/protocols/zmq2/connection'
 module EventMachine
   module Protocols
     module Zmq2
+      # Main implementation peace, heart of protocol
+      module PackString
+        BIG_PACK = 'CNNCa*'.freeze
+        SMALL_PACK = 'CCa*'.freeze
+        def pack_string(string, more = false)
+          bytesize = string.bytesize + 1
+          if bytesize <= 254
+            [bytesize, more ? 1 : 0, string].pack(SMALL_PACK)
+          else
+            [255, 0, bytesize, more ? 1 : 0, string].pack(BIG_PACK)
+          end
+        end
+
+        def prepare_message(message)
+          buffer = ''
+          i = 0
+          last = message.size - 1
+          while i < last
+            buffer << pack_string(message[i], true)
+            i += 1
+          end
+          buffer << pack_string(message[last], false)
+        end
+      end
+
       # Heavy duty worker class
       # Implements ZMTP1.0 - ZMQ2.x transport protocol
       #
@@ -82,8 +107,6 @@ module EventMachine
         FF = "\xff".freeze
         BIG_UNPACK = 'CNNC'.freeze
         SMALL_UNPACK = 'CC'.freeze
-        BIG_PACK = 'CNNCa*'.freeze
-        SMALL_PACK = 'CCa*'.freeze
         def parse_frames(data)
           data = @recv_buffer.empty? ? data : (@recv_buffer << data)
           while data.bytesize > 0
@@ -104,38 +127,14 @@ module EventMachine
           @recv_buffer = data
         end
 
-        def send_frame(string, more = false)
-          bytesize = string.bytesize + 1
-          if bytesize <= 254
-            packed = [bytesize, more ? 1 : 0, string].pack(SMALL_PACK)
-          else
-            packed = [255, 0, bytesize, more ? 1 : 0, string].pack(BIG_PACK)
-          end
-          if @buffer
-            @buffer << packed
-            unless more
-              send_data @buffer
-              @buffer = nil
-            end
-          elsif !more
-            send_data packed
-          else
-            @buffer = packed
-          end
-        end
+        include PackString
 
         def send_strings(strings)
           if String === strings
-            send_frame(strings, false)
+            send_data pack_string(strings, false)
           else
             strings = Array(strings)
-            last = strings.size - 1
-            i = 0
-            while i < last
-              send_frame(strings[i], true)
-              i += 1
-            end
-            send_frame(strings[last], false)
+            send_data prepare_message(strings)
           end
         end
       end
