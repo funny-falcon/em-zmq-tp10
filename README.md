@@ -1,8 +1,8 @@
 # EventMachine ZMTP1.0 protocol (ZMQ2.x protocol)
 
-It is implementation of ZMTP 1.0 - ZMQ 2.x transport protocol.
-There are implementations of ZMQ socket types which try to be
-similar to original, but not too hard.
+It is implementation of ZMTP 1.0 - ZMQ 2.x transport protocol using facilites provided by EventMachine.
+There are implementations of ZMQ socket types which try to be similar to original, but not too hard. Moreover, you may create your own behaviour.
+Library is tested against native ZMQ using ffi-rzmq.
 
 ## Installation
 
@@ -20,7 +20,7 @@ Or install it yourself as:
 
 ## Usage
 
-Library provides callback oriented classes which tries to emulate behaviour of standard ZMQ classes.
+Library provides callback oriented classes which tries to emulate behaviour of standard ZMQ classes, but already integrated with EventMachine eventloop.
 
 Main difference in behaviour is in highwatermark handling and balancing:
 For DEALER and REQ zmq provides roundrobin load balancing until HighWaterMark reached, then send operation blocks or returns error `EAGAIN`.
@@ -28,7 +28,7 @@ This implementation do roundrobin until fixed internal highwatermark (2048bytes)
 
 This internal per connect buffer is handled by EventMachine itself, and there is no precise control over it, so that, if peer is disconnected, all pushed messages to this buffer are lost. So that, compared to raw ZMQ, you loose not only content of OS's internal socket buffer, but EventMachine buffer as well :(
 
-But since ZMQ is never pretending on durability, it is not big issue (for me).
+But since ZMQ is never pretended on durability, it is not big issue (for me).
 
 There is two strategy of highwatermark handling: `drop_first` and `drop_last`.
 `drop_last` - is ignoring any try to send message if queue is full - this is default strategy for ZMQ if you use nonblocking sending.
@@ -43,7 +43,8 @@ And you could do any crazy thing using base `EM::Protocols::Zmq2::Socket` class
 
   Base class. It provides #connect and #bind methods for establishing endpoints.
   This method could be called outside EM event loop (even before EM.run called), cause they use EM.schedule.
-  At the moment only TCP and IPC connection types are supported.
+  TCP and IPC endpoints are supported and fully interoperable with native ZMQ.
+  INPROC supported as well, but you should treat them as connections inside EventMachine's context, so that you could not connect to native ZMQ inproc endpoints.
 
 ### Dealer
 
