@@ -52,11 +52,14 @@ module EventMachine
       end
 
       class PrePub < Socket
+        include PackString
         def send_message(message, even_if_busy = false)
           sent = false
-          for identity, peer in @peers
-            if !peer.error? && (even_if_busy || peer.not_too_busy?)
-              peer.send_strings(message)
+          prepared = prepare_message(message)
+          peers = even_if_busy ? @peers : @free_peers
+          for identity, peer in peers
+            if !peer.error?
+              peer.send_strings_or_prepared(message, prepared)
               sent = true
             end
           end
@@ -65,19 +68,21 @@ module EventMachine
 
       class Pub < Socket
         include QueuePerPeer
+        include PackString
 
         def send_message(message)
           sent = false
+          prepared = prepare_message(message)
           idents = @peers.keys | @queues.keys
           for identity in idents
             peer = @free_peers[identity]
             queue = @queues[identity]
             if peer && (queue.empty? || flush_queue(queue, peer)) && 
                !peer.error? && peer.not_too_busy?
-              peer.send_strings(message)
+              peer.send_strings_or_prepared(message, prepared)
               sent = true
             else
-              pushed = push_to_queue(queue, message)
+              pushed = push_to_queue(queue, [message, prepared])
               sent ||= pushed
             end
           end
@@ -86,6 +91,10 @@ module EventMachine
       private
         def cancel_message(message)
           false
+        end
+
+        def send_formed_message(peer, from_queue)
+          peer.send_strings_or_prepared(*from_queue)
         end
       end
     end

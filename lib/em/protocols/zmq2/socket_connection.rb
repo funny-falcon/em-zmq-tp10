@@ -18,14 +18,19 @@ module EventMachine
         end
 
         def prepare_message(message)
-          buffer = ''
-          i = 0
-          last = message.size - 1
-          while i < last
-            buffer << pack_string(message[i], true)
-            i += 1
+          if String === message
+            pack_string(message, false)
+          else
+            message = Array(message)
+            buffer = ''
+            i = 0
+            last = message.size - 1
+            while i < last
+              buffer << pack_string(message[i], true)
+              i += 1
+            end
+            buffer << pack_string(message[last], false)
           end
-          buffer << pack_string(message[last], false)
         end
       end
 
@@ -130,12 +135,11 @@ module EventMachine
         include PackString
 
         def send_strings(strings)
-          if String === strings
-            send_data pack_string(strings, false)
-          else
-            strings = Array(strings)
-            send_data prepare_message(strings)
-          end
+          send_data prepare_message(strings)
+        end
+
+        def send_strings_or_prepared(strings, prepared)
+          send_data prepared
         end
       end
     end

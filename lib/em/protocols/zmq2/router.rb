@@ -59,8 +59,8 @@ module EventMachine
         end
 
       private
-        def form_message(message)
-          message[1..-1]
+        def send_formed_message(peer, from_queue)
+          peer.send_strings(from_queue[1..-1])
         end
       end
 

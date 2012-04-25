@@ -15,6 +15,9 @@ module EventMachine
       autoload :Router, 'em/protocols/zmq2/router.rb'
       autoload :PreRep, 'em/protocols/zmq2/rep.rb'
       autoload :Rep, 'em/protocols/zmq2/rep.rb'
+      autoload :Sub, 'em/protocols/zmq2/pub_sub.rb'
+      autoload :PrePub, 'em/protocols/zmq2/pub_sub.rb'
+      autoload :Pub, 'em/protocols/zmq2/pub_sub.rb'
     end
   end
 end

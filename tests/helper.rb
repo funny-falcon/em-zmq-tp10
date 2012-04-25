@@ -75,10 +75,12 @@ module SocketMixin
   attr :incoming_queue
   def initialize(opts={})
     super(opts)
+    @connected = opts[:connected]
+    @finished = opts[:finished]
     @incoming_queue = []
   end
 
-  attr_writer :connected
+  attr_writer :connected, :finished
 
   def peer_free(peer_ident, connection)
     super

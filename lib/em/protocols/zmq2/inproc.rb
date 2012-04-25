@@ -114,6 +114,10 @@ module EventMachine
             end
           end
 
+          def send_strings_or_prepared(strings, prepared)
+            send_strings(strings)
+          end
+
           def close_connection(after_writting = false)
             @peer.close_connection(:peer)  unless after_writting == :peer
             unless after_writting == true

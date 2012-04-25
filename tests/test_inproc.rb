@@ -33,7 +33,6 @@ describe 'InProc' do
   end
 
   def run_test
-    EM.error_handler{|e| puts "HI #{e.inspect}" }
     EM.run {
       connected.callback do
         fan.peers['sink.0'].wont_be_nil
@@ -85,5 +84,31 @@ describe 'InProc' do
       fan.connect 'inproc://sink.1'
       run_test
     end
+  end
+
+  class IPPub < EM::Protocols::Zmq2::Pub
+    include SocketMixin
+  end
+  class IPSub < EM::Protocols::Zmq2::Sub
+    include SocketMixin
+  end
+  it "should pub messages to inproc and tcp sub" do
+    pub = IPPub.new(identity: 'pub', connected: connected)
+    subs = 2.times.map{ sub = IPSub.new(subscribe: 'hi') }
+    subs[0].bind 'tcp://127.0.0.1:9876'
+    pub.connect 'tcp://127.0.0.1:9876'
+    subs[1].bind 'inproc://sink.1'
+    pub.connect 'inproc://sink.1'
+    EM.run {
+      connected.callback {
+        messages.each{|message| pub.send_message(message)}
+        pub.close do
+          EM.next_tick{ EM.stop }
+        end
+      }
+    }
+    subs.each {|sub|
+      sub.incoming_queue.must_equal messages
+    }
   end
 end

@@ -35,13 +35,13 @@ module EventMachine
         def flush_queue(queue, peer, even_if_busy = false)
           until queue.empty?
             return false if peer.error? || !(even_if_busy || peer.not_too_busy?)
-            peer.send_strings(form_message(queue.shift))
+            send_formed_message(peer, queue.shift)
           end
           true
         end
 
-        def form_message(message)
-          message
+        def send_formed_message(peer, from_queue)
+          peer.send_strings(from_queue)
         end
 
         def flush_all_queue
