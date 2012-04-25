@@ -21,7 +21,7 @@ describe 'InProc' do
   end
 
   let(:messages) do
-    100.times.map{|i| ['hi', i.to_s]}
+    1000.times.map{|i| ['hi', i.to_s]}
   end
 
   let(:fan) do
