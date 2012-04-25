@@ -18,7 +18,7 @@ module EventMachine
         end
 
         def post_init
-          send_frame @socket.identity
+          send_frame @socket.identity, false
         end
 
         def unbind(err)
