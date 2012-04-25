@@ -178,11 +178,11 @@ module EM
               queue.shift(queue.size - hwm).each{|earlier|
                 cancel_message(earlier)
               }
-              queue.push(message)  if message
+              queue.push(message.dup)  if message
               true
             end
           else
-            queue.push(message) if message
+            queue.push(message.dup) if message
             true
           end
         end
