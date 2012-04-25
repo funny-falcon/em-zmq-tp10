@@ -1,4 +1,5 @@
 require 'em/protocols/zmq2/socket_connection'
+require 'em/protocols/zmq2/inproc'
 module EM
   module Protocols
     module Zmq2
@@ -47,7 +48,12 @@ module EM
         def bind(addr)
           kind, *socket = parse_address(addr)
           EM.schedule {
-            @bindings << EM.start_server(*socket, SocketConnection, self)
+            @bindings << case kind
+                when :tcp, :ipc
+                  EM.start_server(*socket, SocketConnection, self)
+                when :inproc
+                  InProc.bind(addr, self)
+                end
           }
         end
 
@@ -61,10 +67,10 @@ module EM
             @reconnect_timers.delete addr
             unless @conn_addresses[ addr ]
               connection = case kind
-                  when :tcp
+                  when :tcp, :ipc
                     EM.connect(*socket, SocketConnection, self)
-                  when :ipc
-                    EM.connect_unix_domain(*socket, SocketConnection, self)
+                  when :inproc
+                    InProc.connect(addr, self)
                   end
               @connections[ connection ] = addr
               @conn_addresses[ addr ] = connection
@@ -93,7 +99,7 @@ module EM
         def unregister_peer(peer_identity)
           @peers.delete peer_identity
           @free_peers.delete peer_identity
-          if @peers.empty? && @after_writting
+          if @peers.empty? && @after_writting.respond_to?(:call)
             @after_writting.call
           end
         end
@@ -109,7 +115,13 @@ module EM
           @after_writting = cb || block
           flush_all_queue  if @after_writting
           @peers.values.each{|c| c.close_connection(!!@after_writting)}
-          @bindings.each{|c| EM.stop_server c }
+          @bindings.each{|c|
+            unless String === c
+              EM.stop_server c
+            else
+              InProc.unbind(c, self)
+            end
+          }
         end
 
         # override to make sure all messages are sent before socket closed
@@ -201,6 +213,8 @@ module EM
             [:tcp, $1, $2.to_i]
           when %r{ipc://(.+)}
             [:ipc, $1]
+          when %r{inproc://(.+)}
+            [:inproc, $1]
           else
             raise 'Not supported ZMQ socket kind'
           end

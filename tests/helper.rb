@@ -70,3 +70,25 @@ module Native
     @zbind.close
   end
 end
+
+module SocketMixin
+  attr :incoming_queue
+  def initialize(opts={})
+    super(opts)
+    @incoming_queue = []
+  end
+
+  attr_writer :connected
+
+  def peer_free(peer_ident, connection)
+    super
+    if @connected && @free_peers.size == 2
+      @connected, connected = nil, @connected
+      connected.succeed
+    end
+  end
+
+  def receive_message(message)
+    @incoming_queue << message
+  end
+end

@@ -1,5 +1,6 @@
 require 'eventmachine'
 require 'em/protocols/zmq2'
+require 'em/protocols/zmq2/connection'
 module EventMachine
   module Protocols
     module Zmq2
@@ -10,15 +11,12 @@ module EventMachine
       #
       # It is not for end user usage
       class SocketConnection < EM::Connection
+        include ConnectionMixin
         # :stopdoc:
         def initialize(socket)
           @socket = socket
           @recv_buffer = ''
           @recv_frames = [[]]
-        end
-
-        def post_init
-          send_frame @socket.identity, false
         end
 
         def unbind(err)
@@ -70,16 +68,8 @@ module EventMachine
 
         def receive_data(data)
           parse_frames(data)
-          if message = pop_message
-            unless @peer_identity
-              peer_identity = message.first
-              message = pop_message
-              @peer_identity = @socket.register_peer(peer_identity, self)
-            end
-            while message
-              @socket.receive_message_and_peer message, @peer_identity
-              message = pop_message
-            end
+          while message = pop_message
+            receive_strings(message)
           end
         end
 
