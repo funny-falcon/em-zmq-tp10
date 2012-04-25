@@ -125,11 +125,18 @@ module EventMachine
         end
 
         def send_strings(strings)
-          unless Array === strings
+          if String === strings
+            send_frame(strings, false)
+          else
             strings = Array(strings)
+            last = strings.size - 1
+            i = 0
+            while i < last
+              send_frame(strings[i], true)
+              i += 1
+            end
+            send_frame(strings[last], false)
           end
-          strings[0..-2].each{|str| send_frame(str, true)}
-          send_frame(strings.last, false)
         end
       end
     end
