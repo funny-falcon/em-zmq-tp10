@@ -26,10 +26,10 @@ module EventMachine
             i = 0
             last = message.size - 1
             while i < last
-              buffer << pack_string(message[i], true)
+              buffer << pack_string(message[i].to_s, true)
               i += 1
             end
-            buffer << pack_string(message[last], false)
+            buffer << pack_string(message[last].to_s, false)
           end
         end
       end
