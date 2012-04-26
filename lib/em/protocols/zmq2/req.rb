@@ -197,11 +197,6 @@ module EventMachine
           true
         end
 
-        def register_peer(peer_identity, connection) # :nodoc:
-          super
-          flush_queue
-        end
-
         def flush_all_queue # :nodoc:
           flush_queue(true)
         end
