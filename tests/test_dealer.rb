@@ -94,24 +94,6 @@ describe 'Dealer' do
       (dealer.incoming_queue - messages).must_be_empty
       (messages - dealer.incoming_queue).must_be_empty
     end
-
-    it "should be able to connect after timeout" do
-      connected_ = false
-      finished_ = false
-      EM.run do
-        connected.callback{
-          connected_ = true;
-        }
-        EM.add_timer(0.1) do
-          EM.defer(proc do
-            Native.with_socket_pair('ROUTER'){ sleep(0.3); }
-          end, proc{
-            EM.next_tick{ EM.stop }
-          })
-        end
-      end
-      connected_.must_equal true
-    end
   end
 
   describe EM::Protocols::Zmq2::Dealer do

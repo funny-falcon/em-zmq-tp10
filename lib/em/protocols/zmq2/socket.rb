@@ -63,12 +63,22 @@ module EM
         #   connect('ipc://filename') - connect to unix port
         def connect(addr)
           kind, *socket = parse_address(addr)
-          EM.schedule {
+          EM.schedule lambda{
             @reconnect_timers.delete addr
             unless @conn_addresses[ addr ]
               connection = case kind
-                  when :tcp, :ipc
+                  when :tcp
                     EM.connect(*socket, SocketConnection, self)
+                  when :ipc
+                    begin
+                      EM.connect_unix_domain(*socket, SocketConnection, self)
+                    rescue RuntimeError
+                      timer = EM.add_timer(SMALL_TIMEOUT) do
+                        connect(addr)
+                      end
+                      @reconnect_timers[addr] = timer
+                      break
+                    end
                   when :inproc
                     InProc.connect(addr, self)
                   end
