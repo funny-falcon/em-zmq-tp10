@@ -66,7 +66,7 @@ module EventMachine
 
         if method_defined?(:outbound_data_count)
           def _not_too_busy?
-            outbound_data_count < 16
+            outbound_data_count < 32
           end
         else
           def _not_too_busy?

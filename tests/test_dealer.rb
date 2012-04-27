@@ -12,6 +12,7 @@ describe 'Dealer' do
 
   describe EM::Protocols::Zmq2::PreDealer do
     class MyPreDealer < EM::Protocols::Zmq2::PreDealer
+
       attr :incoming_queue
       def initialize(opts={})
         super(opts)
@@ -35,7 +36,7 @@ describe 'Dealer' do
     end
 
     let(:messages) do
-      100.times.map{|n| ['', 'hello', 'world', n.to_s]}
+      64.times.map{|n| ['', 'hello', 'world', n.to_s]}
     end
 
     it "should be able to send message" do
@@ -44,11 +45,11 @@ describe 'Dealer' do
         EM.run {
           connected.callback {
             messages.each{|message|
-              dealer.send_message(message)
+              dealer.send_message(message).must_equal true
             }
-            EM.add_timer(0.1){
+            dealer.close do
               EM.next_tick{ EM.stop }
-            }
+            end
           }
         }
         result = []

@@ -81,7 +81,7 @@ describe 'Router' do
     end
 
     let(:messages) do
-      100.times.map{|n| ['hello', n.to_s] } << ['hello', 'xxx']
+      62.times.map{|n| ['hello', n.to_s] } << ['hello', 'xxx']
     end
 
     it "should be able to receive messages" do
@@ -115,10 +115,10 @@ describe 'Router' do
           dup_halves = halves.map(&:dup)
           connected.callback do
             dup_halves[0].each do |message|
-              router.send_message(['BIND_DEALER', *message])
+              router.send_message(['BIND_DEALER', *message]).must_equal true
             end
             dup_halves[1].each do |message|
-              router.send_message(['CONNECT_DEALER', *message])
+              router.send_message(['CONNECT_DEALER', *message]).must_equal true
             end
             EM.defer(proc do thrd.join end, proc do
               EM.next_tick{ EM.stop }
