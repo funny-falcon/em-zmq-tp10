@@ -20,16 +20,16 @@ module EventMachine
           end
         end
 
-      private
-        def react_on_hwm_decrease
-          @queues.each{|_, queue| push_to_queue(queue)}
-        end
-
         def peer_free(peer, connection)
           super
           peer_conn = @peers[peer]
           queue = @queues[peer]
           flush_queue(queue, peer_conn)
+        end
+
+      private
+        def react_on_hwm_decrease
+          @queues.each{|_, queue| push_to_queue(queue)}
         end
 
         def flush_queue(queue, peer, even_if_busy = false)
