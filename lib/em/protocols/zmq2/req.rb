@@ -201,12 +201,12 @@ module EventMachine
           flush_queue(true)
         end
 
-        private
-
         def peer_free(peer, connection)
           super
           flush_queue
         end
+
+        private
 
         def react_on_hwm_decrease
           push_to_queue

@@ -89,14 +89,14 @@ module EventMachine
           flush_queue && super(message) || push_to_queue(@write_queue, message)
         end
 
-      private
-        def flush_all_queue
-          flush_queue(true)
-        end
-
         def peer_free(peer_identity, connection)
           super
           flush_queue
+        end
+
+      private
+        def flush_all_queue
+          flush_queue(true)
         end
 
         def react_on_hwm_decrease
