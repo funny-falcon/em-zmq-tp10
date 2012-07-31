@@ -120,7 +120,6 @@ module EventMachine
       # +#receive_message+ , and you should use +#send_request+ instead of
       # +#send_message+
       #
-      # @example
       #   class MyReq < EM::Protocols::Zmq2::Req
       #     def receive_reply(message, data, request_id)
       #       puts "received message #{message} and stored data #{data}
@@ -132,7 +131,6 @@ module EventMachine
       #     puts "Message sent"
       #   end
       #
-      # @example
       #   class TimeoutedReq < EM::Protocols::Zmq2::PreReq
       #     def initialize(opts={})
       #       super
@@ -264,6 +262,11 @@ module EventMachine
       #     }
       #   end
       class ReqCb < Req
+        def cancel_request(request_id)
+          callback = super
+          callback.call(nil, request_id)
+        end
+
         def receive_reply(message, callback, request_id)
           callback.call(message, request_id)
         end
