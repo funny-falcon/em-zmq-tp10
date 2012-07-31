@@ -113,18 +113,22 @@ module EventMachine
         BIG_UNPACK = 'CNNC'.freeze
         SMALL_UNPACK = 'CC'.freeze
         def parse_frames(data)
-          data = @recv_buffer.empty? ? data : (@recv_buffer << data)
-          while data.bytesize > 0
+          unless @recv_buffer.empty?
+            data = @recv_buffer << data
+          end
+          while data.bytesize >= 2
             if data.start_with?(FF)
+              break  if data.bytesize < 10
               _, _, length, more = data.unpack(BIG_UNPACK)
               start_at = 10
             else
-              length, more = data.unpack(SMALL_UNPACK)
+              length = data.getbyte(0)
+              more = data.getbyte(1)
               start_at = 2
             end
             length -= 1
-            break  if data.size < start_at + length
-            str = data[start_at, length]
+            break  if data.bytesize < start_at + length
+            str = data.byteslice(start_at, length)
             data[0, start_at + length] = EMPTY
             @recv_frames.last << str
             @recv_frames << [] if more & 1 == 0
