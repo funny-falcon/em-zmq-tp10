@@ -50,6 +50,7 @@ module EventMachine
         end
 
         def unbind(err)
+          self.notify_when_free= false
           if @peer_identity
             @socket.unregister_peer(@peer_identity)
           end
