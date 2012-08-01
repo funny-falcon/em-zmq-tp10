@@ -91,9 +91,11 @@ module EventMachine
         end
 
         def not_too_busy?
-          free = _not_too_busy?
-          self.notify_when_free = !free
-          free
+          unless error?
+            free = _not_too_busy?
+            self.notify_when_free = !free
+            free
+          end
         end
 
         def receive_data(data)
