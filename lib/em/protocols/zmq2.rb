@@ -23,3 +23,9 @@ module EventMachine
 end
 require 'em/protocols/zmq2/socket_connection'
 require 'em/protocols/zmq2/socket'
+
+class String
+  unless method_defined?(:byteslice)
+    alias byteslice slice
+  end
+end
