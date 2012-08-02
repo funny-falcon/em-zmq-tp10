@@ -41,28 +41,13 @@ module EventMachine
       #
       # It is not for end user usage
       class SocketConnection < EM::Connection
-        include ConnectionMixin
         # :stopdoc:
+        include ConnectionMixin
+
         def initialize(socket)
           @socket = socket
           @recv_buffer = ''
           @recv_frames = [[]]
-        end
-
-        def unbind(err)
-          self.notify_when_free= false
-          if @peer_identity
-            @socket.unregister_peer(@peer_identity)
-          end
-          @socket.not_connected(self)
-        end
-
-        # use watching on outbound queue when possible
-        # rely on https://github.com/eventmachine/eventmachine/pull/317 if were accepted
-        # or on https://github.com/funny-falcon/eventmachine/tree/sent_data
-        # use timers otherwise
-        def sent_data
-          @socket.peer_free(@peer_identity, self) if not_too_busy?
         end
 
         if method_defined?(:outbound_data_count)
@@ -91,13 +76,6 @@ module EventMachine
           end
         end
 
-        def not_too_busy?
-          unless error?
-            free = _not_too_busy?
-            self.notify_when_free = !free
-            free
-          end
-        end
 
         def receive_data(data)
           parse_frames(data)
