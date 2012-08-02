@@ -11,6 +11,7 @@ module EM
       class Socket
         attr :identity, :hwm
         attr_accessor :hwm_strategy
+        attr_accessor :do_balance
         GENERATED = '%GN%'.freeze
 
         # Accept options, which are dependend on socket type
@@ -31,6 +32,7 @@ module EM
           @hwm = opts[:hwm] || HWM_INFINITY
           @hwm_strategy = opts[:hwm_strategy] || :drop_last
           @identity = opts[:identity] || EMPTY
+          @do_balance = opts.fetch(:do_balance, true)
           @peers = {}
           @free_peers = {}
           @connections = {}

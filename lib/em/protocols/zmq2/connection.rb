@@ -11,11 +11,11 @@ module EventMachine
         end
 
         def not_too_busy?
-          unless error?
+          !error? && (!@socket.do_balance || begin
             free = _not_too_busy?
             self.notify_when_free = !free
             free
-          end
+          end)
         end
 
         def post_init
