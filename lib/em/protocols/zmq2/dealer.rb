@@ -7,16 +7,16 @@ module EventMachine
       # to react when message could not be send
       #
       # @example
-      # class MyDealer < EM::Protocols::Zmq2::PreDealer
-      #   def receive_message(message)
-      #     puts "Message received: #{message.inspect}"
+      #   class MyDealer < EM::Protocols::Zmq2::PreDealer
+      #     def receive_message(message)
+      #       puts "Message received: #{message.inspect}"
+      #     end
       #   end
-      # end
-      # dealer = MyDealer.new
-      # dealer.connect('tcp://127.0.0.1:8000')
-      # if !dealer.send_message(['asdf','fdas'])
-      #   puts "Could not send message (no free peers)"
-      # end
+      #   dealer = MyDealer.new
+      #   dealer.connect('tcp://127.0.0.1:8000')
+      #   if !dealer.send_message(['asdf','fdas'])
+      #     puts "Could not send message (no free peers)"
+      #   end
       class PreDealer < Socket
         # @private
         def choose_peer(even_if_busy = false)
@@ -59,16 +59,16 @@ module EventMachine
       # The only visible change from PreDealer is less frequent +send_message+ false return.
       #
       # @example
-      # class MyDealer < EM::Protocols::Zmq2::Dealer
-      #   def receive_message(message)
-      #     puts "Message received: #{message.inspect}"
+      #   class MyDealer < EM::Protocols::Zmq2::Dealer
+      #     def receive_message(message)
+      #       puts "Message received: #{message.inspect}"
+      #     end
       #   end
-      # end
-      # dealer = MyDealer.new
-      # dealer.connect('tcp://127.0.0.1:8000')
-      # if !dealer.send_message(['asdf','fdas'])
-      #   puts "No free peers and outgoing queue is full"
-      # end
+      #   dealer = MyDealer.new
+      #   dealer.connect('tcp://127.0.0.1:8000')
+      #   if !dealer.send_message(['asdf','fdas'])
+      #     puts "No free peers and outgoing queue is full"
+      #   end
       class Dealer < PreDealer
         # :stopdoc:
         def initialize(opts = {})
@@ -109,14 +109,14 @@ module EventMachine
       # on every incoming message (instead of #receive_message)
       #
       # @example
-      # dealer = EM::Protocols::Zmq2::DealerCb.new do |message|
-      #   puts "Receive message #{message.inspect}"
-      # end
-      # dealer.connect('ipc://rep')
-      # dealer.send_message(['hello','world'])
+      #   dealer = EM::Protocols::Zmq2::DealerCb.new do |message|
+      #     puts "Receive message #{message.inspect}"
+      #   end
+      #   dealer.connect('ipc://rep')
+      #   dealer.send_message(['hello','world'])
       class DealerCb < Dealer
         # Accepts callback as second parameter or block
-        # :callsec:
+        # :call-seq:
         #   new(opts) do |message|   end
         #   new(opts, proc{|message| })
         def initialize(opts = {}, cb = nil, &block)

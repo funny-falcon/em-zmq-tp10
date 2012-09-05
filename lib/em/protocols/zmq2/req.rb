@@ -13,7 +13,7 @@ module EventMachine
       # @example
       #   class MyReq < EM::Protocols::Zmq2::PreReq
       #     def receive_reply(message, data, request_id)
-      #       puts "received message #{message} and stored data #{data}
+      #       puts "received message #{message} and stored data #{data}"
       #     end
       #   end
       #
@@ -233,7 +233,7 @@ module EventMachine
             when :drop_first
               hwm = @hwm - (request ? 1 : 0)
               while @requests.size > hwm
-                k, message = @requests.shift
+                _, message = @requests.shift
                 cancel_message(message)
               end
               @requests[request.first] = request.dup  if request
@@ -307,9 +307,9 @@ module EventMachine
           wrapped = Wrapped.new(data, deferrable)
           callback ||= block
           if Proc === callback
-            deferrable.callback &callback
+            deferrable.callback(&callback)
           else
-            deferrable.callback{|reply, data| callback.call(reply, data)}
+            deferrable.callback{|reply, _data| callback.call(reply, _data)}
           end
           if request_id = super(message, wrapped)
             deferrable.errback{ cancel_request(request_id) }
