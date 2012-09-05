@@ -124,9 +124,13 @@ module EM
           @connections.clear
           @conn_addresses.clear
           @reconnect_timers.each{|_, timer| EM.cancel_timer(timer)}
-          @after_writting = cb || block
-          flush_all_queue  if @after_writting
-          @peers.values.each{|c| c.close_connection(!!@after_writting)}
+          unless @peers.empty?
+            @after_writting = cb || block
+            flush_all_queue  if @after_writting
+            @peers.values.each{|c| c.close_connection(!!@after_writting)}
+          else
+            EM.next_tick @after_writting
+          end
           @bindings.each{|c|
             unless String === c
               EM.stop_server c
