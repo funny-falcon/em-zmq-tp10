@@ -29,7 +29,7 @@ describe 'InProc' do
     2.times.map{|i| IPDealer.new(identity: "sink.#{i}") }
   end
 
-  def run_test
+  def run_this_test
     EM.run {
       connected.callback do
         fan.peers['sink.0'].wont_be_nil
@@ -53,7 +53,7 @@ describe 'InProc' do
   it "should send messages to several connected socket" do
     sinks.each{|sink| sink.connect 'inproc://fan'}
     fan.bind 'inproc://fan'
-    run_test
+    run_this_test
   end
 
   it "should send messages to several binded sockets" do
@@ -62,7 +62,7 @@ describe 'InProc' do
       sink.bind bind_point
       fan.connect bind_point
     }
-    run_test
+    run_this_test
   end
 
   it "should send messages to inproc and tcp" do
@@ -70,7 +70,7 @@ describe 'InProc' do
     fan.connect 'tcp://127.0.0.1:9876'
     sinks[1].bind 'inproc://sink.1'
     fan.connect 'inproc://sink.1'
-    run_test
+    run_this_test
   end
 
   if RUBY_PLATFORM !~ /window/
@@ -79,7 +79,7 @@ describe 'InProc' do
       fan.connect 'ipc://falcon'
       sinks[1].bind 'inproc://sink.1'
       fan.connect 'inproc://sink.1'
-      run_test
+      run_this_test
     end
   end
 
