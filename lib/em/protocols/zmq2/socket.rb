@@ -192,8 +192,8 @@ module EM
             case @hwm_strategy
             when :drop_last
               if queue.size > @hwm
-                queue.pop(queue.size - @hwm).each{|message|
-                  cancel_message(message)
+                queue.pop(queue.size - @hwm).each{|mess|
+                  cancel_message(mess)
                 }
               end
               false
