@@ -179,8 +179,11 @@ module EM
       private
         # splits message into envelope and message as defined by ZMQ 2.x
         def split_message(message) # :doc:
-          i = message.index(EMPTY)
-          [message.slice(0, i), message.slice(i+1, message.size)]
+          if i = message.index(EMPTY)
+            [message.slice(0, i), message.slice(i+1, message.size)]
+          else
+            [[], message]
+          end
         end
 
         # helper method for managing queue concerning @hwm setting
