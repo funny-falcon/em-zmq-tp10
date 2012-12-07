@@ -308,7 +308,7 @@ module EventMachine
           callback ||= block
           if Proc === callback
             deferrable.callback(&callback)
-          else
+          elsif callback
             deferrable.callback{|reply, _data| callback.call(reply, _data)}
           end
           if request_id = super(message, wrapped)
