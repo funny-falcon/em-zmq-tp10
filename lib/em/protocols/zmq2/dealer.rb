@@ -20,15 +20,31 @@ module EventMachine
       class PreDealer < Socket
         # @private
         def choose_peer(even_if_busy = false)
-          peers = even_if_busy ? @peers : @free_peers
+          if even_if_busy
+            peers = @peers
+            all_peers = nil
+          else
+            peers = @free_peers
+            all_peers = @peers
+          end
+
           i = peers.size
           while i > 0
-            ident, connect = peers.shift
-            if even_if_busy || connect.not_too_busy?
+            while i > 0
+              ident, connect = peers.shift
               peers[ident] = connect # use the fact, that hash is ordered in Ruby 1.9
-              return connect  unless connect.error?
+              if all_peers
+                all_peers.delete(ident)
+                all_peers[ident] = connect
+              end
+              if even_if_busy || connect.not_too_busy?
+                return connect  unless connect.error?
+              end
+              i -= 1
             end
-            i -= 1
+            i = all_peers ? all_peers.size - peers.size : 0
+            peers = all_peers
+            all_peers = nil
           end
         end
 
