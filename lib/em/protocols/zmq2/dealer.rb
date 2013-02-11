@@ -32,12 +32,14 @@ module EventMachine
           while i > 0
             while i > 0
               ident, connect = peers.shift
-              peers[ident] = connect # use the fact, that hash is ordered in Ruby 1.9
               if all_peers
                 all_peers.delete(ident)
                 all_peers[ident] = connect
+              else
+                peers[ident] = connect
               end
               if even_if_busy || connect.not_too_busy?
+                @free_peers[ident] = connect # use the fact, that hash is ordered in Ruby 1.9
                 return connect  unless connect.error?
               end
               i -= 1
