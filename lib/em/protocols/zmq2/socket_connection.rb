@@ -108,9 +108,10 @@ module EventMachine
               start_at = 2
             end
             length -= 1
-            break  if data.bytesize < start_at + length
+            finish = start_at + length
+            break  if data.bytesize < finish
             str = data.byteslice(start_at, length)
-            data[0, start_at + length] = EMPTY
+            data = data.byteslice(finish, data.bytesize - finish)
             @recv_frames.last << str
             @recv_frames << [] if more & 1 == 0
           end
