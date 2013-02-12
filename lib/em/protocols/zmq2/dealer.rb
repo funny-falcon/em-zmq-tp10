@@ -29,7 +29,7 @@ module EventMachine
           end
 
           i = peers.size
-          while i > 0
+          while peers
             while i > 0
               ident, connect = peers.shift
               if all_peers
