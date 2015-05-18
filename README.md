@@ -48,95 +48,99 @@ And you could do any crazy thing using base `EM::Protocols::Zmq2::Socket` class
 
 ### Dealer
 
-      class MyPreDealer < EM::Protocols::Zmq2::PreDealer
-        def receive_message(message)
-          puts "Message received: #{message.inspect}"
-        end
-      end
-      dealer = MyPreDealer.new
-      dealer.connect('tcp://127.0.0.1:8000')
-      dealer.bind('unix://dealer.sock')
-      EM.schedule {
-        if !dealer.send_message(['asdf','fdas'])
-          puts "Could not send message (no free peers)"
-        end
-      }
+```ruby
+class MyPreDealer < EM::Protocols::Zmq2::PreDealer
+  def receive_message(message)
+    puts "Message received: #{message.inspect}"
+  end
+end
+dealer = MyPreDealer.new
+dealer.connect('tcp://127.0.0.1:8000')
+dealer.bind('unix://dealer.sock')
+EM.schedule {
+  if !dealer.send_message(['asdf','fdas'])
+    puts "Could not send message (no free peers)"
+  end
+}
 
-      class MyDealer < EM::Protocols::Zmq2::Dealer
-        def receive_message(message)
-          puts "Message received: #{message.inspect}"
-        end
-      end
-      dealer = MyDealer.new(hwm: 1000, hwm_strategy: :drop_last)
-      dealer.connect('tcp://127.0.0.1:8000')
-      EM.schedule {
-        if !dealer.send_message(['asdf','fdas'])
-          puts "No free peers and outgoing queue is full"
-        end
-      }
+class MyDealer < EM::Protocols::Zmq2::Dealer
+  def receive_message(message)
+    puts "Message received: #{message.inspect}"
+  end
+end
+dealer = MyDealer.new(hwm: 1000, hwm_strategy: :drop_last)
+dealer.connect('tcp://127.0.0.1:8000')
+EM.schedule {
+  if !dealer.send_message(['asdf','fdas'])
+    puts "No free peers and outgoing queue is full"
+  end
+}
 
-      dealer = EM::Protocols::Zmq2::DealerCb.new do |message|
-         puts "Receive message #{message.inspect}"
-      end
-      dealer.connect('ipc://rep')
-      EM.schedule {
-        dealer.send_message(['hello','world'])
-      }
+dealer = EM::Protocols::Zmq2::DealerCb.new do |message|
+   puts "Receive message #{message.inspect}"
+end
+dealer.connect('ipc://rep')
+EM.schedule {
+  dealer.send_message(['hello','world'])
+}
+```
 
 ### Req
 
-      class MyPreReq < EM::Protocols::Zmq2::PreReq
-        def receive_reply(message, data, request_id)
-          puts "Received message #{message} and stored data #{data}
-        end
-      end
-      req = MyPreReq.new
-      req.bind(...)
-      req.connect(...)
-      if request_id = req.send_request(['this is', 'message'], 'saved_data')
-        puts "Message sent"
-      else
-        puts "there is no free peer"
-      end
+```ruby
+class MyPreReq < EM::Protocols::Zmq2::PreReq
+  def receive_reply(message, data, request_id)
+    puts "Received message #{message} and stored data #{data}"
+  end
+end
+req = MyPreReq.new
+req.bind(...)
+req.connect(...)
+if request_id = req.send_request(['this is', 'message'], 'saved_data')
+  puts "Message sent"
+else
+  puts "there is no free peer"
+end
 
-      class MyReq < EM::Protocols::Zmq2::PreReq
-        def receive_reply(message, data, request_id)
-          puts "Received message #{message} and stored data #{data}
-        end
-      end
-      req = MyReq.new
-      req.bind(...)
-      req.connect(...)
-      if request_id = req.send_request(['hi'], 'ho')
-        puts "Message sent"
-      end
+class MyReq < EM::Protocols::Zmq2::PreReq
+  def receive_reply(message, data, request_id)
+    puts "Received message #{message} and stored data #{data}"
+  end
+end
+req = MyReq.new
+req.bind(...)
+req.connect(...)
+if request_id = req.send_request(['hi'], 'ho')
+  puts "Message sent"
+end
 
-      req = EM::Protocols::Zmq2::ReqCb.new
-      req.bind('ipc://req')
-      timer = nil
-      request_id = req.send_request(['hello', 'world']) do |message|
-        EM.cancel_timer(timer)
-        puts "Message #{message}"
-      end
-      if request_id
-        timer = EM.add_timer(1) {
-          req.cancel_request(request_id)
-        }
-      end
+req = EM::Protocols::Zmq2::ReqCb.new
+req.bind('ipc://req')
+timer = nil
+request_id = req.send_request(['hello', 'world']) do |message|
+  EM.cancel_timer(timer)
+  puts "Message #{message}"
+end
+if request_id
+  timer = EM.add_timer(1) {
+    req.cancel_request(request_id)
+  }
+end
 
-      req = EM::Protocols::Zmq2::ReqDefer.new
-      req.bind('ipc://req')
-      data = {hi: 'ho'}
-      deferable = req.send_request(['hello', 'world'], data) do |reply, data|
-        puts "Reply received #{reply} #{data}"
-      end
-      deferable.timeout 1
-      deferable.errback do
-        puts "Message canceled"
-      end
-      deferable.callback do |reply, data|
-        puts "Another callback #{reply} #{data}"
-      end
+req = EM::Protocols::Zmq2::ReqDefer.new
+req.bind('ipc://req')
+data = {hi: 'ho'}
+deferable = req.send_request(['hello', 'world'], data) do |reply, data|
+  puts "Reply received #{reply} #{data}"
+end
+deferable.timeout 1
+deferable.errback do
+  puts "Message canceled"
+end
+deferable.callback do |reply, data|
+  puts "Another callback #{reply} #{data}"
+end
+```
 
 ### Router
 
@@ -144,51 +148,55 @@ Router stores peer identity in a message, as ZMQ router do.
 And it sends message to a peer, which idenitity equals to first message string.
 `PreRouter` does no any queue caching, `Router` saves message in queue per peer, controlled by highwatermark strategy.
 
-      class MyPreRouter < EM::Protocols::Zmq2::PreRouter
-        def receive_message(message)
-          puts "Received message #{message} (and it contains envelope)"
-        end
-      end
-      router = MyPreRouter.new
-      router.bind(...)
-      router.send_message(message)
+```ruby
+class MyPreRouter < EM::Protocols::Zmq2::PreRouter
+  def receive_message(message)
+    puts "Received message #{message} (and it contains envelope)"
+  end
+end
+router = MyPreRouter.new
+router.bind(...)
+router.send_message(message)
 
-      class MyRouter < EM::Protocols::Zmq2::Router
-        def receive_message(message)
-          puts "Received message #{message}"
-          message[-1] = 'reply'
-          send_message(message)
-        end
-      end
-      router = MyPreRouter.new(hwm: 1000, hwm_strategy: :drop_first)
-      router.bind(...)
-      router.send_message(message)
+class MyRouter < EM::Protocols::Zmq2::Router
+  def receive_message(message)
+    puts "Received message #{message}"
+    message[-1] = 'reply'
+    send_message(message)
+  end
+end
+router = MyPreRouter.new(hwm: 1000, hwm_strategy: :drop_first)
+router.bind(...)
+router.send_message(message)
+```
 
 ### Rep
 
 REP differs from Router mainly in methods signature.
 
-      class EchoBangPreRep < EM::Protocols::Zmq2::PreRep
-        def receive_request(message, envelope)
-          message << "!"
-          if send_reply(message, envelope)
-            puts "reply sent successfuly"
-          end
-        end
-      end
-      rep = EchoBangPreRep.new
-      rep.bind('ipc://rep')
+```ruby
+class EchoBangPreRep < EM::Protocols::Zmq2::PreRep
+  def receive_request(message, envelope)
+    message << "!"
+    if send_reply(message, envelope)
+      puts "reply sent successfuly"
+    end
+  end
+end
+rep = EchoBangPreRep.new
+rep.bind('ipc://rep')
 
-      class EchoBangRep < EM::Protocols::Zmq2::Rep
-        def receive_request(message, envelope)
-          message << "!"
-          if send_reply(message, envelope)
-            puts "reply sent successfuly"
-          end
-        end
-      end
-      rep = EchoBangRep.new
-      rep.bind('ipc://rep')
+class EchoBangRep < EM::Protocols::Zmq2::Rep
+  def receive_request(message, envelope)
+    message << "!"
+    if send_reply(message, envelope)
+      puts "reply sent successfuly"
+    end
+  end
+end
+rep = EchoBangRep.new
+rep.bind('ipc://rep')
+```
 
 ### Sub
 
@@ -197,19 +205,21 @@ Note that as in ZMQ 2.x filtering occurs on Sub side.
 
 Since subscriptions could be defined with callback passed to `:subscribe` option, `subscribe` or `subscribe_many` methods, you could use this class without overloading.
 
-      class MySub < EM::Protocols::Zmq2::Sub
-        def receive_message(message)
-          puts "default handler"
-        end
-      end
-      sub = MySub.new(subscribe: ['this', 'that'])
-      sub.subscribe /^callback/i, do |message|
-        puts "Callback subscribe #{message}"
-      end
-      sub.subscribe_many(
-        proc{|s| s.end_with?("END")} => proc{|message| puts "TILL END #{message}"},
-        '' => nil # also to default
-      )
+```ruby
+class MySub < EM::Protocols::Zmq2::Sub
+  def receive_message(message)
+    puts "default handler"
+  end
+end
+sub = MySub.new(subscribe: ['this', 'that'])
+sub.subscribe /^callback/i, do |message|
+  puts "Callback subscribe #{message}"
+end
+sub.subscribe_many(
+  proc{|s| s.end_with?("END")} => proc{|message| puts "TILL END #{message}"},
+  '' => nil # also to default
+)
+```
 
 ### Pub
 
@@ -219,14 +229,15 @@ Since subscriptions could be defined with callback passed to `:subscribe` option
 
 Since there is no incoming data, there is no need to overload methods.
 
-      pub = EM::Protocols::Zmq2::PrePub.new
-      pub.bind(...)
-      pub.send_message(['hi', 'you'])
+```ruby
+pub = EM::Protocols::Zmq2::PrePub.new
+pub.bind(...)
+pub.send_message(['hi', 'you'])
 
-      pub = EM::Protocols::Zmq2::Pub.new
-      pub.bind(...)
-      pub.send_message(['hi', 'you'])
-
+pub = EM::Protocols::Zmq2::Pub.new
+pub.bind(...)
+pub.send_message(['hi', 'you'])
+```
 
 ## Contributing
 
