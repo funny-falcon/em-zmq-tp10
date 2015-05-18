@@ -90,7 +90,7 @@ module EventMachine
           end
         end
 
-        FF = "\xff".freeze
+        FF = "\xff".force_encoding('BINARY').freeze
         BIG_UNPACK = 'CNNC'.freeze
         SMALL_UNPACK = 'CC'.freeze
         def parse_frames(data)

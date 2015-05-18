@@ -12,11 +12,7 @@ module EM
         attr :identity, :hwm
         attr_accessor :hwm_strategy
         attr_accessor :do_balance
-        if String.method_defined?(:b)
-          GENERATED = '%GN%'.b.freeze
-        else
-          GENERATED = '%GN%'.force_encoding('BINARY').freeze
-        end
+        GENERATED = '%GN%'.force_encoding('BINARY').freeze
 
         # Accept options, which are dependend on socket type
         # Common options are:

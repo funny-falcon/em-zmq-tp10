@@ -26,8 +26,8 @@ describe 'Rep' do
       @connected.succeed
     end
     def receive_request(message, envelope)
-      message.first.must_equal 'hello'
-      envelope.first.must_be :start_with?, 'BIND_'
+      message.first.must_equal 'hello'.force_encoding('BINARY')
+      envelope.first.must_be :start_with?, 'BIND_'.force_encoding('BINARY')
       send_reply(['world', *message[1..-1]], envelope)
       @finished.succeed  if message.last == 'xxx'
     end
